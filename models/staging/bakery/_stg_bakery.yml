@@ -1,0 +1,92 @@
+version: 2
+
+models:
+  - name: stg_bakery__customers
+    description: Cleaned and typed customer records from the bronze layer.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: first_name
+        tests:
+          - not_null
+      - name: last_name
+        tests:
+          - not_null
+      - name: email
+        description: Unique customer email address.
+        tests:
+          - not_null
+          - unique
+      - name: city
+      - name: created_at
+
+  - name: stg_bakery__products
+    description: Cleaned and typed product records, including retired products.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: product_name
+        tests:
+          - not_null
+      - name: category
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: price
+        tests:
+          - not_null
+      - name: is_active
+
+  - name: stg_bakery__orders
+    description: Cleaned and typed order records.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        description: Foreign key to stg_bakery__customers.
+        tests:
+          - not_null
+      - name: order_date
+        tests:
+          - not_null
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['placed', 'processing', 'completed', 'cancelled']
+      - name: total_amount
+        tests:
+          - not_null
+
+  - name: stg_bakery__order_items
+    description: Cleaned and typed order line items.
+    columns:
+      - name: order_item_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Foreign key to stg_bakery__orders.
+        tests:
+          - not_null
+      - name: product_id
+        description: Foreign key to stg_bakery__products.
+        tests:
+          - not_null
+      - name: quantity
+        tests:
+          - not_null
+      - name: unit_price
+        tests:
+          - not_null

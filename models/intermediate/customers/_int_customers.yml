@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: int_customers__order_history
+    description: >
+      Customer records enriched with completed order history aggregates.
+      All customers are included; those with no completed orders have
+      total_orders = 0 and lifetime_revenue = 0.
+      Grain: one row per customer.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: first_name
+        tests:
+          - not_null
+      - name: last_name
+        tests:
+          - not_null
+      - name: email
+        tests:
+          - not_null
+          - unique
+      - name: city
+      - name: created_at
+      - name: total_orders
+        description: Count of completed orders placed by this customer.
+        tests:
+          - not_null
+      - name: lifetime_revenue
+        description: Sum of line totals across all completed orders.
+        tests:
+          - not_null
+      - name: first_order_date
+        description: Date of the customer's first completed order. Null if no completed orders.
+      - name: last_order_date
+        description: Date of the customer's most recent completed order. Null if no completed orders.

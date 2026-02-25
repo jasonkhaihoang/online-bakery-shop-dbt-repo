@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: bakery
+    database: bakery
+    schema: bronze
+    tables:
+      - name: brz_customers
+        description: One row per customer. Unique by email.
+      - name: brz_products
+        description: One row per product. Includes retired products (is_active = false).
+      - name: brz_orders
+        description: One row per order.
+      - name: brz_order_items
+        description: One row per line item within an order.

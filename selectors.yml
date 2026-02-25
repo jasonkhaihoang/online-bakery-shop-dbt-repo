@@ -1,0 +1,30 @@
+selectors:
+
+  - name: staging
+    description: All staging models and their upstream sources.
+    definition:
+      method: tag
+      value: staging
+
+  - name: intermediate
+    description: All intermediate (silver) models.
+    definition:
+      method: tag
+      value: intermediate
+
+  - name: marts
+    description: All mart (gold) models.
+    definition:
+      method: tag
+      value: mart
+
+  - name: full_dag
+    description: Complete lineage from staging through marts.
+    definition:
+      union:
+        - method: tag
+          value: staging
+        - method: tag
+          value: intermediate
+        - method: tag
+          value: mart
