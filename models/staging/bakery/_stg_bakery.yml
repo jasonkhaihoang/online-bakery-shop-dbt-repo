@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: stg_bakery__customers
+    description: Cleaned, typed customer records from raw_customers.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: email
+        description: Customer email. Unique identifier.
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_bakery__orders
+    description: Cleaned, typed order records from raw_orders.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: status
+        description: Order status — placed | processing | completed | cancelled.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['placed', 'processing', 'completed', 'cancelled']
+
+  - name: stg_bakery__order_items
+    description: Cleaned, typed order line items from raw_order_items.
+    columns:
+      - name: order_item_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        tests:
+          - not_null
+
+  - name: stg_bakery__products
+    description: Cleaned, typed product records from raw_products.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: category
+        description: Product category — bread | pastry | cake | drink.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']

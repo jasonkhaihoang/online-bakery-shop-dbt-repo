@@ -1,0 +1,14 @@
+product_id,product_name,category,price,is_active
+1,Sourdough Loaf,bread,6.50,true
+2,Baguette,bread,3.25,true
+3,Whole Wheat Bread,bread,5.75,true
+4,Croissant,pastry,3.25,true
+5,Pain au Chocolat,pastry,3.75,true
+6,Almond Croissant,pastry,4.50,true
+7,Birthday Cake,cake,45.00,true
+8,Chocolate Cake,cake,38.00,true
+9,Carrot Cake,cake,35.00,true
+10,Filter Coffee,drink,3.00,true
+11,Latte,drink,4.50,true
+12,Orange Juice,drink,4.00,true
+13,Seasonal Pie,cake,24.00,false

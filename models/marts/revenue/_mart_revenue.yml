@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: fct_revenue
+    description: >
+      One row per completed order with revenue totals.
+      Grain: order_id.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: order_id
+        description: Unique completed order identifier.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        description: FK to dim_customer.
+        data_type: integer
+        tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed.
+        data_type: date
+      - name: line_item_count
+        description: Number of distinct line items in this order.
+        data_type: bigint
+      - name: total_units
+        description: Sum of quantity across all line items.
+        data_type: bigint
+      - name: order_revenue
+        description: Total revenue for this order (sum of line_total).
+        data_type: numeric

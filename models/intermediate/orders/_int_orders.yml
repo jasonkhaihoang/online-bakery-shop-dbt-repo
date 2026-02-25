@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: int_orders__completed
+    description: >
+      Completed order items enriched with product details.
+      Applies revenue recognition rule — only orders with status = 'completed' are included.
+      Grain: one row per order item on a completed order.
+    columns:
+      - name: order_item_id
+        description: Primary key — unique per line item.
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: FK to completed orders.
+        tests:
+          - not_null
+      - name: customer_id
+        description: FK to customers.
+        tests:
+          - not_null
+      - name: line_total
+        description: quantity × unit_price for this line item.
+        tests:
+          - not_null

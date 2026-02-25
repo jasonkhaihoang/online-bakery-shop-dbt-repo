@@ -1,0 +1,18 @@
+# dbt artifacts
+target/
+logs/
+dbt_packages/
+
+# SQLite databases
+*.db
+
+# Python virtualenv
+.venv/
+
+# dbt profiles (may contain credentials)
+profiles.yml
+
+# OS / editor
+.DS_Store
+*.swp
+__pycache__/

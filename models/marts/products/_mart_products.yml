@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: dim_product
+    description: >
+      Active product dimension. Excludes retired products (is_active = false).
+      Grain: product_id.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: product_id
+        description: Unique product identifier.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: product_name
+        description: Display name of the product.
+        data_type: text
+        tests:
+          - not_null
+      - name: category
+        description: Product category — bread | pastry | cake | drink.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: price
+        description: Current list price.
+        data_type: numeric
+        tests:
+          - not_null

@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: fct_customer_orders
+    description: >
+      One row per customer with lifetime order aggregates.
+      Grain: customer_id.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: customer_id
+        description: Unique customer identifier.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: first_name
+        description: Customer first name.
+        data_type: text
+        tests:
+          - not_null
+      - name: last_name
+        description: Customer last name.
+        data_type: text
+        tests:
+          - not_null
+      - name: total_orders
+        description: Count of completed orders.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: total_revenue
+        description: Sum of order totals for completed orders.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: first_order_date
+        description: Date of the customer's first completed order.
+        data_type: date
+      - name: last_order_date
+        description: Date of the customer's most recent completed order.
+        data_type: date
+
+  - name: dim_customer
+    description: >
+      Customer dimension with profile attributes.
+      Grain: customer_id.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: true
+        tier: 1
+    columns:
+      - name: customer_id
+        description: Unique customer identifier.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: first_name
+        description: Customer first name. PII.
+        data_type: text
+        tests:
+          - not_null
+        meta:
+          pii: true
+      - name: last_name
+        description: Customer last name. PII.
+        data_type: text
+        tests:
+          - not_null
+        meta:
+          pii: true
+      - name: email
+        description: Customer email address. PII.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+        meta:
+          pii: true
+      - name: city
+        description: Customer city.
+        data_type: text
+      - name: created_at
+        description: Account creation date.
+        data_type: date

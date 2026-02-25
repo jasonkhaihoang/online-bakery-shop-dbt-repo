@@ -1,0 +1,11 @@
+customer_id,first_name,last_name,email,city,created_at
+1,Alice,Johnson,alice.johnson@email.com,New York,2024-01-10
+2,Bob,Smith,bob.smith@email.com,Los Angeles,2024-01-15
+3,Carol,Williams,carol.williams@email.com,Chicago,2024-02-03
+4,David,Brown,david.brown@email.com,Houston,2024-02-14
+5,Emma,Davis,emma.davis@email.com,Phoenix,2024-03-01
+6,Frank,Miller,frank.miller@email.com,Philadelphia,2024-03-22
+7,Grace,Wilson,grace.wilson@email.com,San Antonio,2024-04-05
+8,Henry,Moore,henry.moore@email.com,San Diego,2024-04-18
+9,Iris,Taylor,iris.taylor@email.com,Dallas,2024-05-02
+10,Jack,Anderson,jack.anderson@email.com,Seattle,2024-05-20

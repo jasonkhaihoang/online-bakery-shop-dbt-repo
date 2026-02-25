@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: bakery
+    description: Bronze layer — raw bakery data loaded via setup_bronze.sql.
+    schema: main
+    tables:
+      - name: raw_customers
+        description: One row per customer. Unique by email.
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - unique
+          - name: email
+            tests:
+              - not_null
+              - unique
+
+      - name: raw_orders
+        description: One row per order.
+        columns:
+          - name: order_id
+            tests:
+              - not_null
+              - unique
+          - name: customer_id
+            tests:
+              - not_null
+
+      - name: raw_order_items
+        description: One row per line item within an order.
+        columns:
+          - name: order_item_id
+            tests:
+              - not_null
+              - unique
+          - name: order_id
+            tests:
+              - not_null
+
+      - name: raw_products
+        description: One row per product. Includes retired products (is_active = false).
+        columns:
+          - name: product_id
+            tests:
+              - not_null
+              - unique

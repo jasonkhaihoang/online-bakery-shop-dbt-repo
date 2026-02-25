@@ -1,0 +1,63 @@
+name: bakery_sales
+version: '1.0.0'
+
+config-version: 2
+
+profile: bakery_shop
+
+vars:
+  default_domain: 'sales'
+  default_owner: 'data-eng'
+  default_pii: false
+  default_tier: 3
+
+models:
+  bakery_sales:
+
+    # ── Staging ───────────────────────────────────────────
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags:
+        - staging
+      +meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 3
+
+    # ── Intermediate (Silver) ─────────────────────────────
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+      +tags:
+        - intermediate
+        - silver
+      +meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 2
+
+    # ── Mart (Gold) ───────────────────────────────────────
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags:
+        - mart
+        - gold
+      +meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+
+snapshots:
+  +schema: snapshots
+
+tests:
+  +severity: error
+
+clean-targets:
+  - target
+  - dbt_packages

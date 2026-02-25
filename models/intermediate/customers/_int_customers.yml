@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: int_customers__order_history
+    description: >
+      Customer records enriched with completed-order aggregates.
+      Grain: one row per customer. Customers with no completed orders have total_orders = 0.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: total_orders
+        description: Count of completed orders for this customer.
+        tests:
+          - not_null
+      - name: total_revenue
+        description: Sum of total_amount for all completed orders.
+        tests:
+          - not_null
