@@ -1,0 +1,64 @@
+name: domain_name  # replace with actual domain name
+version: '1.0.0'
+
+config-version: 2
+
+profile: domain_name  # matches profiles.yml target
+
+vars:
+  # Meta taxonomy seed values
+  default_domain: 'domain_name'  # override per subfolder if needed
+  default_owner: 'data-eng'
+  default_pii: false
+  default_tier: 3
+
+models:
+  domain_name:
+
+    # ── Staging ───────────────────────────────────────────
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags:
+        - staging
+      +meta:
+        domain: '{{ var("default_domain") }}'
+        owner: '{{ var("default_owner") }}'
+        pii: false
+        tier: 3
+
+    # ── Intermediate (Silver) ─────────────────────────────
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+      +tags:
+        - intermediate
+        - silver
+      +meta:
+        domain: '{{ var("default_domain") }}'
+        owner: '{{ var("default_owner") }}'
+        pii: false
+        tier: 2
+
+    # ── Mart (Gold) ───────────────────────────────────────
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags:
+        - mart
+        - gold
+      +meta:
+        domain: '{{ var("default_domain") }}'
+        owner: '{{ var("default_owner") }}'
+        pii: false
+        tier: 1
+
+snapshots:
+  +schema: snapshots
+
+tests:
+  +severity: error
+
+clean-targets:
+  - target
+  - dbt_packages
