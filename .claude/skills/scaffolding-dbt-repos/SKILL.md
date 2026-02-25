@@ -59,16 +59,10 @@ These files are project-specific and maintained by the repo owner — not create
 
 **Config templates:**
 - `dbt_project.yml` — project config template with layer materializations and meta defaults
-- `sqlfluff.cfg` — linting rules (change dialect to match your target adapter)
+- `sqlfluff.cfg` — linting rules (sparksql dialect by default)
 - `generate_schema_name.sql` — schema isolation macro + env mapping table
 
 **Examples & templates:**
 - `model_examples.md` — staging, intermediate, and mart model examples
 - `schema_contracts.md` — Gold-tier YAML with enforced contracts
 - `model_template.sql` — starter skeleton for new models
-
-## Known Gotchas
-
-**`+meta` requires literal values in `dbt_project.yml`.**  dbt does not render Jinja (`{{ var(...) }}`) inside `dbt_project.yml` config blocks such as `+meta`. Using `var()` there causes a compilation error. Always use literal strings — e.g. `domain: sales`, `owner: data-eng` — and replace the placeholders in `dbt_project.yml` for each new project.
-
-**`sqlfluff.cfg` dialect.**  The template defaults to `sparksql`. Change the `dialect` setting to match the target adapter for the project (e.g. `ansi`, `postgres`, `bigquery`, `snowflake`).
