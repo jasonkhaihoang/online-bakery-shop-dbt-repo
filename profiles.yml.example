@@ -1,0 +1,12 @@
+bakery_shop:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: YOUR_HOST
+      port: 5432
+      user: YOUR_USER
+      password: YOUR_PASSWORD
+      dbname: bakery
+      schema: main
+      threads: 4
