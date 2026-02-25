@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_bakery__customers
-    description: Cleaned, typed customer records from raw_customers.
+    description: Cleaned, typed customer records from brz_customers.
     columns:
       - name: customer_id
         description: Primary key.
@@ -16,7 +16,7 @@ models:
           - unique
 
   - name: stg_bakery__orders
-    description: Cleaned, typed order records from raw_orders.
+    description: Cleaned, typed order records from brz_orders.
     columns:
       - name: order_id
         description: Primary key.
@@ -31,7 +31,7 @@ models:
               values: ['placed', 'processing', 'completed', 'cancelled']
 
   - name: stg_bakery__order_items
-    description: Cleaned, typed order line items from raw_order_items.
+    description: Cleaned, typed order line items from brz_order_items.
     columns:
       - name: order_item_id
         description: Primary key.
@@ -43,7 +43,7 @@ models:
           - not_null
 
   - name: stg_bakery__products
-    description: Cleaned, typed product records from raw_products.
+    description: Cleaned, typed product records from brz_products.
     columns:
       - name: product_id
         description: Primary key.

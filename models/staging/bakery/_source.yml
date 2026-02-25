@@ -3,9 +3,9 @@ version: 2
 sources:
   - name: bakery
     description: Bronze layer — raw bakery data loaded via setup_bronze.sql.
-    schema: main
+    schema: "{{ target.name + '_bronze' if target.name != 'prod' else 'bronze' }}"
     tables:
-      - name: raw_customers
+      - name: brz_customers
         description: One row per customer. Unique by email.
         columns:
           - name: customer_id
@@ -17,7 +17,7 @@ sources:
               - not_null
               - unique
 
-      - name: raw_orders
+      - name: brz_orders
         description: One row per order.
         columns:
           - name: order_id
@@ -28,7 +28,7 @@ sources:
             tests:
               - not_null
 
-      - name: raw_order_items
+      - name: brz_order_items
         description: One row per line item within an order.
         columns:
           - name: order_item_id
@@ -39,7 +39,7 @@ sources:
             tests:
               - not_null
 
-      - name: raw_products
+      - name: brz_products
         description: One row per product. Includes retired products (is_active = false).
         columns:
           - name: product_id

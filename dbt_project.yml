@@ -58,6 +58,10 @@ snapshots:
 tests:
   +severity: error
 
+seeds:
+  bakery_sales:
+    +schema: bronze
+
 clean-targets:
   - target
   - dbt_packages

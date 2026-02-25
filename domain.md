@@ -17,10 +17,10 @@ Track revenue and order performance for an online bakery. The domain answers:
 
 | Entity | Source table | Description |
 |---|---|---|
-| Customer | `raw_customers` | Identified by `customer_id`; unique per email address |
-| Order | `raw_orders` | A purchase transaction placed by a customer |
-| Order Item | `raw_order_items` | Line items within an order; links orders to products |
-| Product | `raw_products` | Bakery items available for sale; has a category and active flag |
+| Customer | `brz_customers` | Identified by `customer_id`; unique per email address |
+| Order | `brz_orders` | A purchase transaction placed by a customer |
+| Order Item | `brz_order_items` | Line items within an order; links orders to products |
+| Product | `brz_products` | Bakery items available for sale; has a category and active flag |
 
 ## Business Rules
 

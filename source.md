@@ -8,13 +8,13 @@ Bronze tables are loaded into SQLite via `setup_bronze.sql` and consumed by stag
 |---|---|
 | Source name | `bakery` |
 | Database | `bakery` |
-| Schema | `main` (SQLite default) |
+| Schema | `bronze` |
 
 ---
 
 ## Tables
 
-### `raw_customers`
+### `brz_customers`
 **Grain:** One row per customer. Unique by `email`.
 
 | Column | Type | Description |
@@ -28,7 +28,7 @@ Bronze tables are loaded into SQLite via `setup_bronze.sql` and consumed by stag
 
 ---
 
-### `raw_products`
+### `brz_products`
 **Grain:** One row per product. Includes retired products (`is_active = false`).
 
 | Column | Type | Description |
@@ -41,13 +41,13 @@ Bronze tables are loaded into SQLite via `setup_bronze.sql` and consumed by stag
 
 ---
 
-### `raw_orders`
+### `brz_orders`
 **Grain:** One row per order.
 
 | Column | Type | Description |
 |---|---|---|
 | `order_id` | integer | Primary key |
-| `customer_id` | integer | FK → `raw_customers.customer_id` |
+| `customer_id` | integer | FK → `brz_customers.customer_id` |
 | `order_date` | date | Date the order was placed |
 | `status` | text | `placed` \| `processing` \| `completed` \| `cancelled` |
 | `total_amount` | decimal(8,2) | Pre-calculated order total; equals sum of line items |
@@ -56,13 +56,13 @@ Bronze tables are loaded into SQLite via `setup_bronze.sql` and consumed by stag
 
 ---
 
-### `raw_order_items`
+### `brz_order_items`
 **Grain:** One row per line item within an order. An order has one or more items.
 
 | Column | Type | Description |
 |---|---|---|
 | `order_item_id` | integer | Primary key |
-| `order_id` | integer | FK → `raw_orders.order_id` |
-| `product_id` | integer | FK → `raw_products.product_id` |
+| `order_id` | integer | FK → `brz_orders.order_id` |
+| `product_id` | integer | FK → `brz_products.product_id` |
 | `quantity` | integer | Number of units |
-| `unit_price` | decimal(6,2) | Price at time of order (may differ from current `raw_products.price`) |
+| `unit_price` | decimal(6,2) | Price at time of order (may differ from current `brz_products.price`) |

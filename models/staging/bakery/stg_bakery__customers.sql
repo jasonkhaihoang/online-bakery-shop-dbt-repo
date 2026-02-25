@@ -4,7 +4,7 @@
 with
 
 source as (
-    select * from {{ source('bakery', 'raw_customers') }}
+    select * from {{ source('bakery', 'brz_customers') }}
 ),
 
 renamed as (

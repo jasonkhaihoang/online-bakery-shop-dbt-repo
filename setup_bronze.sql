@@ -8,7 +8,7 @@
 -- DDL — create tables if they don't already exist
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS raw_customers (
+CREATE TABLE IF NOT EXISTS brz_customers (
     customer_id  INTEGER PRIMARY KEY,
     first_name   TEXT    NOT NULL,
     last_name    TEXT    NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS raw_customers (
     created_at   DATE    NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS raw_products (
+CREATE TABLE IF NOT EXISTS brz_products (
     product_id   INTEGER PRIMARY KEY,
     product_name TEXT           NOT NULL,
     category     TEXT           NOT NULL,  -- bread | pastry | cake | drink
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS raw_products (
     is_active    BOOLEAN        NOT NULL DEFAULT 1
 );
 
-CREATE TABLE IF NOT EXISTS raw_orders (
+CREATE TABLE IF NOT EXISTS brz_orders (
     order_id     INTEGER PRIMARY KEY,
     customer_id  INTEGER        NOT NULL,
     order_date   DATE           NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS raw_orders (
     total_amount DECIMAL(8,2)   NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS raw_order_items (
+CREATE TABLE IF NOT EXISTS brz_order_items (
     order_item_id INTEGER PRIMARY KEY,
     order_id      INTEGER        NOT NULL,
     product_id    INTEGER        NOT NULL,
@@ -45,16 +45,16 @@ CREATE TABLE IF NOT EXISTS raw_order_items (
 -- Data refresh — clear and reload in FK-safe order
 -- ============================================================
 
-DELETE FROM raw_order_items;
-DELETE FROM raw_orders;
-DELETE FROM raw_products;
-DELETE FROM raw_customers;
+DELETE FROM brz_order_items;
+DELETE FROM brz_orders;
+DELETE FROM brz_products;
+DELETE FROM brz_customers;
 
 -- ============================================================
 -- Customers (10 rows)
 -- ============================================================
 
-INSERT INTO raw_customers VALUES
+INSERT INTO brz_customers VALUES
 ( 1, 'Alice',  'Johnson',  'alice.johnson@email.com',  'New York',     '2024-01-10'),
 ( 2, 'Bob',    'Smith',    'bob.smith@email.com',      'Los Angeles',  '2024-01-15'),
 ( 3, 'Carol',  'Williams', 'carol.williams@email.com', 'Chicago',      '2024-02-03'),
@@ -70,7 +70,7 @@ INSERT INTO raw_customers VALUES
 -- Products (13 rows — 12 active, 1 retired)
 -- ============================================================
 
-INSERT INTO raw_products VALUES
+INSERT INTO brz_products VALUES
 -- bread
 ( 1, 'Sourdough Loaf',    'bread',   6.50, 1),
 ( 2, 'Baguette',          'bread',   3.25, 1),
@@ -95,7 +95,7 @@ INSERT INTO raw_products VALUES
 -- total_amount = sum(quantity * unit_price) for each order
 -- ============================================================
 
-INSERT INTO raw_orders VALUES
+INSERT INTO brz_orders VALUES
 -- completed orders (revenue-recognised)
 ( 1,  1, '2024-02-01', 'completed',  16.00),  -- sourdough x2 + coffee x1
 ( 2,  2, '2024-02-05', 'completed',  38.00),  -- chocolate cake x1
@@ -119,7 +119,7 @@ INSERT INTO raw_orders VALUES
 -- Order items (25 rows)
 -- ============================================================
 
-INSERT INTO raw_order_items VALUES
+INSERT INTO brz_order_items VALUES
 -- order 1: sourdough x2 + coffee x1 = 13.00 + 3.00 = 16.00
 ( 1,  1,  1, 2, 6.50),
 ( 2,  1, 10, 1, 3.00),
