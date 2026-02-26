@@ -46,6 +46,16 @@
             └── dim_customer.sql
 ```
 
+### dbt_project.yml — use the template, nothing more
+
+Copy `dbt_project.template.yml` from the skill. Do not add:
+- Path declarations (`model-paths`, `seed-paths`, `macro-paths`, etc.) — these are dbt defaults
+- A `seeds:` config block — seed schema is handled by `generate_schema_name.template.sql`
+- A `vars:` block with meta defaults — dbt does not render `{{ var() }}` inside `+meta` config blocks
+
+Required sections only: `models:` (per-layer materialisation, schema, tags, meta), `snapshots:`,
+`tests:`, and `clean-targets:`.
+
 ## Naming Conventions
 
 | Layer | Pattern | Example |
@@ -92,6 +102,43 @@ source()  ──►  Staging  ──►  Intermediate  ──►  Mart
 | Consumer-specific reshaping | **Mart** | Daily revenue rollup for exec dashboard |
 | Metric aggregations | **Mart** | Trailing 7-day active users |
 
+### Staging boundary — what is NOT allowed
+
+Staging models are a strict passthrough. The following are forbidden:
+
+| Forbidden pattern | Example | Correct layer |
+| --- | --- | --- |
+| Boolean flags derived from enums | `status = 'completed' as is_completed` | Intermediate (filter directly: `where status = 'completed'`) |
+| String concatenations | `first_name \|\| ' ' \|\| last_name as full_name` | Intermediate or Mart |
+| Computed metrics | `quantity * unit_price as line_total` | Intermediate |
+| Business-rule filtering | `where status = 'completed'` | Intermediate |
+
+**Why:** a flag like `is_completed` in staging means the revenue recognition rule is now split
+across two files. If the status value ever changes, intermediate silently returns wrong data
+because it still references the stale flag. Keeping the filter in intermediate makes the rule
+visible and traceable in one place.
+
+### Intermediate materialization — incremental (merge)
+
+Intermediate models use `+materialized: incremental` with `incremental_strategy: merge`.
+Each model must declare its own `unique_key` matching the model's primary or surrogate key:
+
+```jinja
+{{ config(
+    materialized         = 'incremental',
+    unique_key           = 'order_item_id',   -- primary key of this model
+    incremental_strategy = 'merge'
+) }}
+```
+
+The incremental filter (processing only new/changed rows) goes on the `source` CTE:
+
+```jinja
+{% if is_incremental() %}
+    where updated_at > (select max(updated_at) from {{ this }})
+{% endif %}
+```
+
 ## Meta Keys
 
 Every model should carry these four `meta` keys:
@@ -114,3 +161,20 @@ Every model should carry these four `meta` keys:
 - Each model entry requires a `description` and at minimum `not_null` / `unique` tests on primary keys.
 - Gold/contracted models additionally require: `columns` descriptions, explicit `meta` (all four keys), `contract: enforced: true`, and `data_tests`.
 - `_source.yml` files belong inside `staging/{source}/` subfolders, declaring the bronze tables consumed via `source()`.
+
+### Sentinel tests on filtered intermediate models
+
+When an intermediate model filters to a single status value (e.g. `WHERE status = 'completed'`),
+add an `accepted_values` test on that column:
+
+```yaml
+- name: status
+  description: Always 'completed' in this model by construction.
+  data_tests:
+    - not_null
+    - accepted_values:
+        values: ['completed']
+```
+
+This sentinel turns a silent failure (filter accidentally removed → inflated revenue) into a
+`dbt test` failure caught before the model reaches consumers.

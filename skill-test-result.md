@@ -1,264 +1,272 @@
 # Skill Test Result: `scaffolding-dbt-repos`
 
-**Test date:** 2026-02-25
+**Test date:** 2026-02-26 (run 2)
 **Test type:** RED vs GREEN (TDD for skills)
 **Skill under test:** `.claude/skills/scaffolding-dbt-repos/SKILL.md`
 **Domain inputs:** `domain.md` + `source.md`
+**Output dirs:** `/tmp/bakery-red/` (RED) · `/tmp/bakery-green/` (GREEN)
 
 ---
 
 ## Test Setup
 
-| Agent | Skill provided? | Task |
-|---|---|---|
-| RED | No skill | Read domain.md + source.md → scaffold dbt project from general knowledge |
-| GREEN | Full skill (SKILL.md + repo_conventions.md + model_examples.md) | Same task |
-
-Both agents used `subagent_type: Plan` (no file-write access) — output is proposals only, not applied to disk.
-
----
-
-## RED Agent Output (Baseline — No Skill)
-
-### File Tree Produced
-```
-bakery_sales/
-├── dbt_project.yml
-├── profiles.yml.example        ← extra, not in spec
-├── packages.yml
-├── .gitignore                  ← extra, not in spec
-├── macros/generate_schema_name.sql
-├── seeds/                      ← CSV data included
-├── models/
-│   ├── staging/bakery/
-│   │   ├── _source.yml
-│   │   ├── _stg_bakery.yml
-│   │   ├── stg_bakery__customers.sql
-│   │   ├── stg_bakery__products.sql
-│   │   ├── stg_bakery__orders.sql
-│   │   └── stg_bakery__order_items.sql
-│   ├── intermediate/
-│   │   ├── orders/
-│   │   │   ├── _int_orders.yml
-│   │   │   ├── int_orders__completed.sql
-│   │   │   └── int_orders__summary.sql
-│   │   └── customers/
-│   │       ├── _int_customers.yml
-│   │       └── int_customers__order_history.sql
-│   └── marts/
-│       ├── revenue/
-│       │   ├── _mart_revenue.yml
-│       │   ├── fct_revenue.sql
-│       │   └── fct_revenue_daily.sql     ← extra
-│       ├── customers/
-│       │   ├── _mart_customers.yml
-│       │   ├── fct_customer_orders.sql   ← extra
-│       │   └── dim_customer.sql
-│       └── products/
-│           ├── _mart_products.yml
-│           └── dim_product.sql
-└── tests/generic/assert_positive_amount.sql  ← extra
-```
-
-### RED Agent Violations / Gaps
-
-| # | Issue | Severity | Detail |
+| Agent | Skill provided? | Output dir | Task |
 |---|---|---|---|
-| 1 | **No `+meta` in dbt_project.yml** | Critical | `domain`, `owner`, `pii`, `tier` keys absent at staging and intermediate layer level |
-| 2 | **No Gold-tier contracts on mart YAML** | Critical | No `contract: enforced: true`, no `data_type` declarations, no explicit `meta` block on any mart model |
-| 3 | **DAG violation: `dim_product` refs `fct_revenue`** | Critical | `dim_product.sql` joins against `{{ ref('fct_revenue') }}` — a mart-to-mart reference, explicitly forbidden by DAG rule 3 |
-| 4 | **Old YAML test syntax** | Minor | Uses `tests:` instead of `data_tests:` throughout all YAML files |
-| 5 | **Extra files outside spec** | Minor | Added `profiles.yml.example`, `.gitignore`, `tests/generic/assert_positive_amount.sql` — none defined in the skill |
-| 6 | **Unguided extra marts** | Minor | Added `fct_revenue_daily` and `fct_customer_orders` without domain.md explicitly calling for them |
+| RED | No skill | `/tmp/bakery-red/` | Read domain.md + source.md → scaffold dbt project from general knowledge |
+| GREEN | Full skill (SKILL.md + repo_conventions.md + model_examples.md + dbt_project.yml + generate_schema_name.sql + schema_contracts.md + sqlfluff.cfg + model_template.sql) | `/tmp/bakery-green/` | Same task, following skill exactly |
+
+Both agents used `subagent_type: general-purpose` — they wrote actual files, not proposals.
+Both started from a clean temp directory with no pre-existing dbt artifacts.
 
 ---
 
-## GREEN Agent Output (With Skill)
+## File Tree Comparison
 
-### File Tree Produced
-```
-.
-├── dbt_project.yml
-├── packages.yml
-├── macros/generate_schema_name.sql
-├── seeds/                      ← CSV data included
-└── models/
-    ├── staging/bakery/
-    │   ├── _source.yml
-    │   ├── _stg_bakery.yml
-    │   ├── stg_bakery__customers.sql
-    │   ├── stg_bakery__products.sql
-    │   ├── stg_bakery__orders.sql
-    │   └── stg_bakery__order_items.sql
-    ├── intermediate/
-    │   ├── orders/
-    │   │   ├── _int_orders.yml
-    │   │   └── int_orders__completed.sql
-    │   └── customers/
-    │       ├── _int_customers.yml
-    │       └── int_customers__order_history.sql
-    └── marts/
-        ├── revenue/
-        │   ├── _mart_revenue.yml
-        │   └── fct_revenue.sql
-        ├── customers/
-        │   ├── _mart_customers.yml
-        │   └── dim_customer.sql
-        └── products/
-            ├── _mart_products.yml
-            └── dim_product.sql
-```
+| File | RED | GREEN |
+|---|---|---|
+| `dbt_project.yml` | ✓ | ✓ |
+| `sqlfluff.cfg` | ✓ | ✓ |
+| `macros/generate_schema_name.sql` | ✓ | ✓ |
+| `models/staging/bakery/_source.yml` | ✓ | ✓ |
+| `models/staging/bakery/_stg_bakery.yml` | ✓ | ✓ |
+| `models/staging/bakery/stg_bakery__customers.sql` | ✓ | ✓ |
+| `models/staging/bakery/stg_bakery__products.sql` | ✓ | ✓ |
+| `models/staging/bakery/stg_bakery__orders.sql` | ✓ | ✓ |
+| `models/staging/bakery/stg_bakery__order_items.sql` | ✓ | ✓ |
+| `models/intermediate/orders/_int_orders.yml` | ✓ | ✓ |
+| `models/intermediate/orders/int_orders__completed.sql` | ✓ | ✓ |
+| `models/intermediate/customers/_int_customers.yml` | ✓ | ✓ |
+| `models/intermediate/customers/int_customers__order_history.sql` | ✓ | ✓ |
+| `models/marts/revenue/_mart_revenue.yml` | `_fct_revenue.yml` ← wrong name | ✓ |
+| `models/marts/revenue/fct_revenue.sql` | ✓ | ✓ |
+| `models/marts/customers/_mart_customers.yml` | `_dim_customer.yml` + `_fct_customer_orders.yml` ← split | ✓ |
+| `models/marts/customers/dim_customer.sql` | ✓ | ✓ |
+| `models/marts/customers/fct_customer_orders.sql` | ✓ | ✓ |
+| `models/marts/products/_mart_products.yml` | `_dim_product.yml` ← wrong name | ✓ |
+| `models/marts/products/dim_product.sql` | ✓ | ✓ |
 
-### GREEN Agent Compliance
+**Total files:** RED = 21 · GREEN = 21 (same count; RED splits mart YAML where GREEN combines)
+
+---
+
+## RED Agent Violations
+
+| # | Violation | File | Severity | Detail |
+|---|---|---|---|---|
+| 1 | **No `+meta` in dbt_project.yml** | `dbt_project.yml` | **Critical** | All 4 meta keys (`domain`, `owner`, `pii`, `tier`) absent from every layer config block. Skill requires these as layer-level defaults; without them no model inherits ownership or observability metadata |
+| 2 | **Mart contracts missing `meta:` config** | All `_mart_*.yml` | **Critical** | `contract: enforced: true` is present but no `meta:` block. Skill requires explicit `meta` (all 4 keys) on every Gold-tier model YAML alongside the contract |
+| 3 | **YAML co-file naming wrong** | `models/marts/` | Minor | One `.yml` per model (`_dim_customer.yml`, `_fct_customer_orders.yml`, `_dim_product.yml`, `_fct_revenue.yml`) instead of one per folder (`_mart_customers.yml`, `_mart_revenue.yml`, `_mart_products.yml`). Skill: "one `.yml` per folder, shared by all models in that folder" |
+| 4 | **Business logic added to staging** | `stg_bakery__orders.sql`, `stg_bakery__customers.sql`, `stg_bakery__order_items.sql` | Minor | Staging computes `is_completed`/`is_cancelled` flags, derives `full_name`, and pre-calculates `line_total`. Skill: staging is clean/type/rename only — no derived logic |
+| 5 | **`sqlfluff.cfg` capitalisation conflict** | `sqlfluff.cfg` | Minor | `capitalisation_policy = upper` for keywords, functions, literals. Skill template specifies `lower` throughout |
+| 6 | **Extra `dbt_project.yml` keys** | `dbt_project.yml` | Minor | Added `model-paths`, `analysis-paths`, `test-paths`, `seed-paths`, `macro-paths`, `snapshot-paths`, `target-path`, and a `seeds: bakery_sales:` config block — none present in skill template |
+
+---
+
+## GREEN Agent Compliance
 
 | # | Requirement | Status | Notes |
 |---|---|---|---|
-| 1 | `+meta` defaults in dbt_project.yml (all 4 keys per layer) | PASS | Set at staging + intermediate layer path; mart models carry explicit overrides |
-| 2 | Gold-tier contracts on all mart YAML | PASS | `contract: enforced: true`, `data_type`, explicit `meta`, `data_tests` on `fct_revenue`, `dim_customer`, `dim_product` |
-| 3 | DAG compliance (no mart-to-mart refs) | PASS | `dim_product` refs `stg_bakery__products` only — no cross-mart references |
-| 4 | Naming conventions (double `__`, correct prefix per layer) | PASS | All files follow `stg_bakery__*`, `int_{concept}__*`, `fct_*`/`dim_*` patterns |
-| 5 | `_source.yml` inside `staging/bakery/` | PASS | Correct location |
-| 6 | One YAML co-file per folder | PASS | `_stg_bakery.yml`, `_int_orders.yml`, `_int_customers.yml`, `_mart_*.yml` |
-| 7 | `data_tests:` syntax | PASS | Uses new syntax throughout |
-| 8 | Business logic at correct layer | PASS | Revenue recognition filter (`status = 'completed'`) in intermediate, not mart |
-| 9 | PII flagging | PASS | `pii: true` on `dim_customer`; `pii: false` on revenue + products |
-| 10 | Tier assignment | PASS | `tier: 1` for Finance/Exec-bound marts; `tier: 2` for supporting layers |
+| 1 | `+meta` defaults in `dbt_project.yml` (all 4 keys per layer) | **PASS** | `domain: sales`, `owner: data-eng`, `pii: false`, `tier: 3/2/1` at staging, intermediate, mart paths |
+| 2 | Gold-tier contracts with explicit `meta:` on all mart models | **PASS** | `contract: enforced: true`, `meta:` (all 4 keys), `data_type`, tests on all mart models |
+| 3 | YAML co-file naming — one file per folder | **PASS** | `_mart_customers.yml`, `_mart_revenue.yml`, `_mart_products.yml` — all correctly named and shared |
+| 4 | Staging = clean/type/rename only, no derived logic | **PASS** | Staging SQL limited to `select`, column renaming, and explicit casts; no business-logic derivations |
+| 5 | `sqlfluff.cfg` keyword capitalisation = lower | **PASS** | Matches skill template: lowercase keywords, identifiers, functions, literals |
+| 6 | Lean `dbt_project.yml` matching skill template | **PASS** | Only layer materialisation, schema, tags, meta, snapshots, tests, clean-targets — no extra path keys |
+| 7 | DAG rules (no backwards/cross-layer refs) | **PASS** | Staging → `source()` only; intermediate → `stg_*` only; marts → `int_*` or `stg_*` only |
+| 8 | Naming conventions (double `__`, correct prefix) | **PASS** | All files follow `stg_bakery__*`, `int_{concept}__*`, `fct_*`/`dim_*` patterns |
+| 9 | Mart scope grounded in `domain.md` | **PASS** | Exactly `revenue`, `customers`, `products` — no extras |
+| 10 | `_source.yml` declares exactly the tables in `source.md` | **PASS** | 4 tables: `brz_customers`, `brz_products`, `brz_orders`, `brz_order_items` |
 
 ---
 
 ## Side-by-Side Comparison
 
-| Dimension | RED (no skill) | GREEN (with skill) | Better |
+| Dimension | RED (no skill) | GREEN (with skill) | Verdict |
 |---|---|---|---|
-| `+meta` in dbt_project.yml | Missing | All 4 keys at staging + intermediate | 🟢 GREEN |
-| Mart YAML contracts | None | `contract: enforced: true` + `data_type` + `meta` on all mart models | 🟢 GREEN |
-| DAG integrity | Broken — `dim_product` → `fct_revenue` (mart→mart) | Clean — all refs follow layer rules | 🟢 GREEN |
-| YAML test key | `tests:` (deprecated) | `data_tests:` | 🟢 GREEN |
-| Intermediate scope | Over-scoped — 3 models incl. unneeded `int_orders__summary` | Focused — 2 models grounded in domain requirements | 🟢 GREEN |
-| Mart scope | Over-scoped — invented `fct_revenue_daily`, `fct_customer_orders` beyond `domain.md` | Exactly the 3 consumer areas listed in `domain.md` | 🟢 GREEN |
-| Bronze sync (`_source.yml` vs `source.md`) | Correct by coincidence — no guiding rule | Correct by rule — explicitly synced to `source.md` | 🟢 GREEN |
-| Extra config files | Added `.gitignore`, `profiles.yml.example`, singular test not in spec | Lean — only spec-defined files | 🟢 GREEN |
-| PII handling | Not addressed | Explicit `pii: true/false` per model | 🟢 GREEN |
-| Tier classification | Not addressed | Explicit `tier: 1/2` per model | 🟢 GREEN |
+| `+meta` in `dbt_project.yml` | **Missing entirely** | All 4 keys at all 3 layers | better |
+| `meta:` block on mart model YAML | **Missing** (contract present but no meta) | Explicit meta on every mart model | better |
+| YAML co-file per folder | **Violated** — per-model files | One file per folder, correct names | better |
+| Staging SQL — clean/type/rename only | **Violated** — derived flags, full_name, line_total | Clean: cast + rename only | better |
+| `sqlfluff.cfg` keyword policy | **UPPER** (contradicts skill template) | **lower** (matches skill template) | better |
+| `dbt_project.yml` leanness | Extra path keys + seeds block | Matches skill template exactly | better |
+| `contract: enforced: true` on mart YAML | Present ✓ | Present ✓ | tie |
+| `data_type` on all mart columns | Present ✓ | Present ✓ | tie |
+| DAG compliance | Clean ✓ | Clean ✓ | tie |
+| Naming conventions | Correct ✓ | Correct ✓ | tie |
+| Mart scope = `domain.md` areas only | Correct ✓ | Correct ✓ | tie |
+| `_source.yml` sync with `source.md` | Correct ✓ | Correct ✓ | tie |
+
+---
+
+## Critical Violations Breakdown
+
+### Violation 1 — No `+meta` in `dbt_project.yml`
+
+**RED:**
+```yaml
+staging:
+  +schema: staging
+  +materialized: view
+  bakery:
+    +tags: ["staging", "bakery"]
+  # NO +meta block
+```
+
+**GREEN:**
+```yaml
+staging:
+  +materialized: view
+  +schema: staging
+  +tags:
+    - staging
+  +meta:
+    domain: sales
+    owner: data-eng
+    pii: false
+    tier: 3
+```
+
+**Impact:** Without `+meta` defaults, no model in the project inherits `domain`, `owner`, `pii`, or `tier`. These keys are the project's observability and governance taxonomy. Data catalogues, lineage tools, and access-control systems that read dbt metadata will find empty fields for every model.
+
+---
+
+### Violation 2 — Mart YAML contracts missing `meta:` config
+
+**RED (`_fct_revenue.yml`):**
+```yaml
+config:
+  contract:
+    enforced: true
+# NO meta: block
+```
+
+**GREEN (`_mart_revenue.yml`):**
+```yaml
+config:
+  contract:
+    enforced: true
+  meta:
+    domain: sales
+    owner: data-eng
+    pii: false
+    tier: 1
+```
+
+**Impact:** Gold-tier models are the public interface of the project — the ones consumed by Finance, Marketing, and Exec. Per `repo_conventions.md`: "Mart (Gold): `meta` must be declared explicitly in each model's YAML block (in addition to any `+meta` defaults)." Omitting it means even if `+meta` defaults existed, the mart-level overrides (e.g., `pii: true` for `dim_customer`) would be missing.
+
+---
+
+### Violation 3 — YAML co-file naming
+
+**RED** splits the customers mart into two separate files:
+```
+models/marts/customers/
+  _dim_customer.yml          ← one file per model
+  _fct_customer_orders.yml   ← one file per model
+  dim_customer.sql
+  fct_customer_orders.sql
+```
+
+**GREEN** follows the skill rule of one co-file per folder:
+```
+models/marts/customers/
+  _mart_customers.yml        ← single co-file for all models in folder
+  dim_customer.sql
+  fct_customer_orders.sql
+```
+
+**Impact:** In large projects, per-model YAML files create a proliferation of files that are harder to navigate. The skill's one-co-file-per-folder rule keeps each mart area readable in a single scan.
+
+---
+
+### Violation 4 — Business logic in staging
+
+**RED `stg_bakery__orders.sql` (derived flags):**
+```sql
+status = 'completed' as is_completed,
+status = 'cancelled' as is_cancelled
+```
+
+**RED `stg_bakery__customers.sql` (derived column):**
+```sql
+first_name || ' ' || last_name as full_name,
+lower(email)                   as email,
+```
+
+**GREEN `stg_bakery__orders.sql` (clean — no derivations):**
+```sql
+cast(order_date as date)        as order_date,
+status,
+cast(total_amount as numeric)   as total_amount
+```
+
+**Impact:** Revenue logic downstream in RED uses `where is_completed` — a flag derived in staging. This blurs the boundary: staging should pass data through cleanly so that the intermediate layer is the single place where business rules live. If the completed filter is bypassed or changed, staging's boolean flags become stale and intermediate models silently produce wrong results.
 
 ---
 
 ## Verdict
 
-**The skill WORKS.**
+**The skill works and continues to fix the two most critical structural failures.**
 
-The three most critical failures in RED (missing `+meta`, absent Gold-tier contracts, DAG violation) are all corrected in GREEN. These are non-trivial — they would cause real production issues:
+Both violations that matter most for production correctness — missing `+meta` in `dbt_project.yml` and missing `meta:` on mart contracts — appeared in RED and were absent in GREEN. These are not cosmetic:
 
-- Missing `+meta` → no observability/ownership metadata on any model
-- No contracts → no column-type enforcement on Gold tier outputs
-- `dim_product` → `fct_revenue` DAG cycle → would cause a circular dependency or incorrect build order in dbt
+- **Missing `+meta`** means zero observability metadata on any model in the project
+- **Missing mart `meta:`** means no PII flags, no tier assignments, and no ownership on the models that Finance and Marketing actually query
 
-GREEN also showed improved discipline in scope: it grounded the mart models in the domain's stated consumer areas (`revenue`, `customers`, `products`) rather than speculatively adding `fct_revenue_daily` and `fct_customer_orders`.
-
----
-
-## Loopholes / Gaps to Consider Closing
-
-| Gap | Recommendation |
-|---|---|
-| Skill doesn't explicitly state `data_tests:` syntax | Add a note: "Use `data_tests:` key (dbt 1.6+), not deprecated `tests:`" |
-| Both agents generated seeds CSV data, but skill says seeds are bronze source — could be confused with schema definitions | Clarify in skill: "`_source.yml` declares bronze tables; seed CSVs load them. Both must exist." |
-| RED added extra marts beyond `domain.md` scope without any guardrail | Consider adding: "Mart consumer areas are defined in `domain.md`. Do not create mart folders beyond those listed." |
-| PII and tier guidance is in `repo_conventions.md` but not highlighted in the main `SKILL.md` | Pull the tier assignment guide and PII rule into SKILL.md overview so it's not buried in a linked file |
+GREEN also maintained cleaner staging SQL (cast/rename only), correct YAML co-file names, and a lean `dbt_project.yml` matching the skill template exactly.
 
 ---
 
-## Loophole Closure Verification — RED Run 2
+## Historical Comparison (all runs)
 
-**Skill edits applied:** Two rules added to `Project Context Files` in `SKILL.md`:
-1. Mart scope rule — "Mart consumer areas table in `domain.md` defines exact folders. Do not add beyond what is listed."
-2. Bronze sync rule — "`_source.yml` must declare exactly the tables in `source.md`, no more, no fewer."
+| Dimension | RED 2026-02-25 run 1 | RED 2026-02-25 run 2 | RED 2026-02-26 run 1 | RED 2026-02-26 run 2 |
+|---|---|---|---|---|
+| No `+meta` in `dbt_project.yml` | **Critical** | **Critical** | Correct | **Critical** |
+| No mart contracts | **Critical** | **Critical** | Correct | Partial (contract present, meta missing) |
+| DAG violations | **Critical** | **Critical** | Clean | Clean |
+| YAML co-file naming | Correct | Correct | Correct | **Violated** |
+| Old `tests:` syntax | **Minor** | **Minor** | Correct | n/a (both use `tests:`) |
+| Extra marts beyond domain.md | **Minor** | **Minor** | Clean | Clean |
+| Staging = clean/type/rename | n/a | n/a | Clean | **Violated** |
 
-RED agent re-run with same inputs (no skill) to confirm the loophole behaviours are still present in the baseline.
+**Pattern:** The `+meta` omission is the most consistent RED failure across all runs. It has appeared in 3 of 4 RED runs. This confirms it is the primary thing the skill fixes reliably.
 
-### RED Run 2 File Tree (Marts Only)
+---
+
+## Previous Test Runs (2026-02-25) — Archived
+
+<details>
+<summary>Full 2026-02-25 test results</summary>
+
+### RED Run 1 — Baseline Violations
+
+| # | Issue | Severity |
+|---|---|---|
+| 1 | No `+meta` in dbt_project.yml | Critical |
+| 2 | No Gold-tier contracts on mart YAML | Critical |
+| 3 | DAG violation: `dim_product` refs `fct_revenue` | Critical |
+| 4 | Old `tests:` syntax throughout | Minor |
+| 5 | Extra files outside spec | Minor |
+| 6 | Unguided extra marts | Minor |
+
+### GREEN Run 1 — All critical issues resolved
+
+### RED Run 2 (loophole closure verification)
 
 ```
 └── marts/
     ├── revenue/
-    │   ├── _mart_revenue.yml
     │   ├── fct_revenue.sql
-    │   └── dim_product.sql          ← misplaced: dim_product belongs in products/, not revenue/
+    │   └── dim_product.sql          ← misplaced
     ├── customers/
-    │   ├── _mart_customers.yml
     │   ├── fct_customer_orders.sql
     │   └── dim_customer.sql
     └── products/
-        ├── _mart_products.yml
-        └── dim_product_category.sql ← invented model; refs dim_product = mart-to-mart DAG violation
+        └── dim_product_category.sql ← invented; refs dim_product = mart→mart DAG violation
 ```
 
-### Loophole Status After RED Run 2
+### GREEN Run 2 — Loophole closure confirmed
 
-| Loophole | Closed in SKILL.md? | Still present in RED run 2? | Verdict |
-|---|---|---|---|
-| **Mart scope** — agent invents models/folders beyond `domain.md` | Yes — rule added | **Yes** — `dim_product_category` invented; `dim_product` misplaced to `revenue/`; `dim_product_category` refs `dim_product` (mart→mart DAG violation) | Baseline confirmed. Needs GREEN re-run to verify skill fix. |
-| **Bronze sync** — `_source.yml` out of sync with `source.md` | Yes — rule added | Not triggered — RED run 2 declared exactly the 4 source tables | Precautionary rule. No violation observed in either run. |
+Both rules (mart scope + bronze sync) confirmed closed. Full DAG compliance. All contracts and meta present.
 
-### Interpretation
-
-Running RED (no skill) cannot verify that a skill fix works — it only confirms the baseline violations are real and stable. RED run 2 shows the **mart scope violation is consistent and recurring** (different form each run: run 1 added `fct_revenue_daily`; run 2 misplaced `dim_product` and invented `dim_product_category` with a DAG violation). This confirms the skill rule addition is addressing a genuine, repeatable failure mode.
-
----
-
-## GREEN Run 2 — Loophole Closure Confirmed
-
-**Skill version tested:** SKILL.md with both loophole rules added.
-
-### GREEN Run 2 File Tree (Marts Only)
-
-```
-└── marts/
-    ├── revenue/
-    │   ├── _mart_revenue.yml
-    │   └── fct_revenue.sql
-    ├── customers/
-    │   ├── _mart_customers.yml
-    │   ├── fct_customer_orders.sql
-    │   └── dim_customer.sql
-    └── products/
-        ├── _mart_products.yml
-        └── dim_product.sql
-```
-
-### Loophole Closure Verification
-
-| Loophole | Expected behaviour | GREEN run 2 behaviour | Verdict |
-|---|---|---|---|
-| **Mart scope** — only `domain.md` consumer areas | 3 folders: `revenue`, `customers`, `products`. No extras. | Exactly 3 folders matching `domain.md`. `dim_product` correctly placed in `products/`. No invented models. | **CLOSED** ✓ |
-| **Bronze sync** — `_source.yml` matches `source.md` exactly | 4 tables declared: `brz_customers`, `brz_products`, `brz_orders`, `brz_order_items` | 4 tables declared, matching `source.md` exactly | **CLOSED** ✓ |
-
-### Additional Checks (carried forward from GREEN run 1)
-
-| Check | Status |
-|---|---|
-| DAG compliance — no mart-to-mart refs | PASS — `dim_product` refs `stg_bakery__products` + `int_orders__completed` only |
-| Gold-tier contracts on all mart YAML | PASS — `contract: enforced: true`, `data_type`, explicit `meta`, `data_tests` on all mart models |
-| `+meta` defaults in `dbt_project.yml` | PASS — set at staging and intermediate layer paths |
-| Naming conventions | PASS — all files follow `stg_bakery__*`, `int_{concept}__*`, `fct_*`/`dim_*` patterns |
-
-### Agent Reasoning Evidence
-
-The GREEN agent explicitly cited the rule when making mart folder decisions:
-
-> *"Mart folders. `domain.md` lists exactly three mart consumer areas: `revenue`, `customers`, `products`. No mart folder is created beyond those three."*
-
-This confirms the rule was read, applied, and constrained the output — not just coincidentally correct.
-
----
-
-## Final Verdict
-
-**Both loopholes are closed. The skill is verified.**
-
-| Phase | Status |
-|---|---|
-| RED run 1 — baseline violations identified | Done |
-| Skill edits — 2 rules added to `Project Context Files` | Done |
-| RED run 2 — baseline violations confirmed as stable/recurring | Done |
-| GREEN run 2 — loophole closure confirmed | **Done ✓** |
+</details>

@@ -26,7 +26,8 @@ models:
 
     # ── Intermediate (Silver) ─────────────────────────────
     intermediate:
-      +materialized: table
+      +materialized: incremental
+      +incremental_strategy: merge
       +schema: intermediate
       +tags:
         - intermediate

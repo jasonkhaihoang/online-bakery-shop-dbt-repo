@@ -14,10 +14,14 @@
     {%- set default_schema = target.schema -%}
 
     {%- if target.name == 'prod' -%}
+        -- CUSTOMISE: change 'prod' to match your production target name (e.g. 'prd', 'production')
         {{ custom_schema_name | trim if custom_schema_name else default_schema }}
 
     {%- else -%}
         {%- if custom_schema_name -%}
+            -- CUSTOMISE: prefix pattern is "{target_name}_{schema}".
+            -- Examples: dev_staging, stg_intermediate, uat_marts.
+            -- Change target names in profiles.yml to control the prefix.
             {{ target.name }}_{{ custom_schema_name | trim }}
         {%- else -%}
             {{ default_schema }}

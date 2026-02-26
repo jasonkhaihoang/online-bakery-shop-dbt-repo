@@ -18,31 +18,31 @@ models:
       - name: order_id
         description: Unique identifier for the completed order.
         data_type: integer
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: customer_id
         description: Foreign key to dim_customer.
         data_type: integer
-        tests:
+        data_tests:
           - not_null
       - name: order_date
         description: Date the order was placed.
         data_type: date
-        tests:
+        data_tests:
           - not_null
       - name: total_items
         description: Number of distinct line items in the order.
         data_type: bigint
-        tests:
+        data_tests:
           - not_null
       - name: total_units
         description: Sum of quantities across all line items.
         data_type: bigint
-        tests:
+        data_tests:
           - not_null
       - name: order_revenue
         description: Total revenue for the order (sum of quantity * unit_price).
         data_type: numeric
-        tests:
+        data_tests:
           - not_null

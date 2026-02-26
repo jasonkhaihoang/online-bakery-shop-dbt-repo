@@ -18,28 +18,28 @@ models:
       - name: product_id
         description: Unique product identifier.
         data_type: integer
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: product_name
         description: Display name of the product.
         data_type: text
-        tests:
+        data_tests:
           - not_null
       - name: category
         description: Product category (bread, pastry, cake, drink).
         data_type: text
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               values: ['bread', 'pastry', 'cake', 'drink']
       - name: price
         description: Current list price.
         data_type: numeric
-        tests:
+        data_tests:
           - not_null
       - name: is_active
         description: False for retired products.
         data_type: boolean
-        tests:
+        data_tests:
           - not_null

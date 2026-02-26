@@ -9,35 +9,35 @@ models:
     columns:
       - name: order_item_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: order_id
         description: Foreign key to the parent order.
-        tests:
+        data_tests:
           - not_null
       - name: customer_id
         description: Foreign key to the customer.
-        tests:
+        data_tests:
           - not_null
       - name: product_id
-        tests:
+        data_tests:
           - not_null
       - name: order_date
-        tests:
+        data_tests:
           - not_null
       - name: status
-        tests:
+        data_tests:
           - not_null
       - name: product_name
       - name: category
       - name: quantity
-        tests:
+        data_tests:
           - not_null
       - name: unit_price
-        tests:
+        data_tests:
           - not_null
       - name: line_total
         description: Revenue contribution of this line item (quantity * unit_price).
-        tests:
+        data_tests:
           - not_null

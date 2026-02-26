@@ -6,18 +6,18 @@ models:
     columns:
       - name: customer_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: first_name
-        tests:
+        data_tests:
           - not_null
       - name: last_name
-        tests:
+        data_tests:
           - not_null
       - name: email
         description: Unique customer email address.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: city
@@ -28,19 +28,19 @@ models:
     columns:
       - name: product_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: product_name
-        tests:
+        data_tests:
           - not_null
       - name: category
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               values: ['bread', 'pastry', 'cake', 'drink']
       - name: price
-        tests:
+        data_tests:
           - not_null
       - name: is_active
 
@@ -49,23 +49,23 @@ models:
     columns:
       - name: order_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: customer_id
         description: Foreign key to stg_bakery__customers.
-        tests:
+        data_tests:
           - not_null
       - name: order_date
-        tests:
+        data_tests:
           - not_null
       - name: status
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               values: ['placed', 'processing', 'completed', 'cancelled']
       - name: total_amount
-        tests:
+        data_tests:
           - not_null
 
   - name: stg_bakery__order_items
@@ -73,20 +73,20 @@ models:
     columns:
       - name: order_item_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: order_id
         description: Foreign key to stg_bakery__orders.
-        tests:
+        data_tests:
           - not_null
       - name: product_id
         description: Foreign key to stg_bakery__products.
-        tests:
+        data_tests:
           - not_null
       - name: quantity
-        tests:
+        data_tests:
           - not_null
       - name: unit_price
-        tests:
+        data_tests:
           - not_null

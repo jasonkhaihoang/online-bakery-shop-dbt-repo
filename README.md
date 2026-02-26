@@ -23,11 +23,12 @@ online-bakery-shop-dbt-repo/
 ├── dbt_project.yml          # Project config
 ├── profiles.yml             # SQLite connection profile
 ├── seeds/                   # Raw CSV data
-│   ├── brz_customers.csv
-│   ├── brz_orders.csv
-│   ├── brz_order_items.csv
-│   └── brz_products.csv
+│   ├── raw_customers.csv
+│   ├── raw_orders.csv
+│   ├── raw_order_items.csv
+│   └── raw_products.csv
 └── models/
+    ├── bronze/              # bronze layer
     ├── staging/             # Clean, typed staging models
     ├── intermediate/        # Enriched join models
     └── marts/sales/         # Sales reporting fact & dimension tables

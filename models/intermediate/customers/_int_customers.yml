@@ -10,28 +10,28 @@ models:
     columns:
       - name: customer_id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: first_name
-        tests:
+        data_tests:
           - not_null
       - name: last_name
-        tests:
+        data_tests:
           - not_null
       - name: email
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: city
       - name: created_at
       - name: total_orders
         description: Count of completed orders placed by this customer.
-        tests:
+        data_tests:
           - not_null
       - name: lifetime_revenue
         description: Sum of line totals across all completed orders.
-        tests:
+        data_tests:
           - not_null
       - name: first_order_date
         description: Date of the customer's first completed order. Null if no completed orders.

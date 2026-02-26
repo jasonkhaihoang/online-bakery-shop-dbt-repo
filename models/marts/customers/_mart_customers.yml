@@ -19,18 +19,18 @@ models:
       - name: customer_id
         description: Unique customer identifier.
         data_type: integer
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: total_orders
         description: Count of completed orders placed by this customer.
         data_type: bigint
-        tests:
+        data_tests:
           - not_null
       - name: lifetime_revenue
         description: Sum of revenue across all completed orders.
         data_type: numeric
-        tests:
+        data_tests:
           - not_null
       - name: first_order_date
         description: Date of the customer's first completed order. Null if no completed orders.
@@ -56,7 +56,7 @@ models:
       - name: customer_id
         description: Unique customer identifier.
         data_type: integer
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: first_name
@@ -64,21 +64,21 @@ models:
         data_type: text
         meta:
           pii: true
-        tests:
+        data_tests:
           - not_null
       - name: last_name
         description: Customer last name. PII.
         data_type: text
         meta:
           pii: true
-        tests:
+        data_tests:
           - not_null
       - name: email
         description: Customer email address. PII.
         data_type: text
         meta:
           pii: true
-        tests:
+        data_tests:
           - not_null
           - unique
       - name: city

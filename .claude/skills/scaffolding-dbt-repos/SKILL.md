@@ -9,8 +9,8 @@ One dbt project per data domain, each in its own GitHub repo and Fabric workspac
 
 | Layer | Alias | Folder | Purpose |
 | --- | --- | --- | --- |
-| **Staging** | — | `models/staging/{source}/` | dbt entry point. Cleaned, typed, renamed. One model per source table. Consumes bronze via `source()`. |
-| **Intermediate** | Silver | `models/intermediate/{concept}/` | Core business logic, cross-source joins. |
+| **Staging** | — | `models/staging/{source}/` | dbt entry point. Cast, rename, passthrough only — no derived columns, no boolean flags, no computed metrics. One model per source table. Consumes bronze via `source()`. |
+| **Intermediate** | Silver | `models/intermediate/{concept}/` | Core business logic, cross-source joins. Materialized as incremental (merge strategy). Each model declares its own `unique_key` in a `{{ config() }}` block. |
 | **Mart** | Gold | `models/marts/{consumer_area}/` | Consumer-ready fct/dim. Contracted, SLA-bound. |
 
 > **Note:** Bronze tables are managed outside dbt. Staging is the dbt entry point — it references bronze via `source()`, not `ref()`.
@@ -58,11 +58,11 @@ These files are project-specific and maintained by the repo owner — not create
 **Conventions** → `repo_conventions.md` — full folder tree, business logic placement, meta keys, and YAML co-file requirements.
 
 **Config templates:**
-- `dbt_project.yml` — project config template with layer materializations and meta defaults
-- `sqlfluff.cfg` — linting rules (sparksql dialect by default)
-- `generate_schema_name.sql` — schema isolation macro + env mapping table
+- `dbt_project.template.yml` — project config template with layer materializations and meta defaults
+- `sqlfluff.template.cfg` — linting rules (postgres dialect; switch to sparksql for Fabric targets)
+- `generate_schema_name.template.sql` — schema isolation macro + env mapping table
 
 **Examples & templates:**
 - `model_examples.md` — staging, intermediate, and mart model examples
 - `schema_contracts.md` — Gold-tier YAML with enforced contracts
-- `model_template.sql` — starter skeleton for new models
+- `model.template.sql` — starter skeleton for new models
