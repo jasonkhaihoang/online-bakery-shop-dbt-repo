@@ -1,242 +1,133 @@
-# Skill Test Result: `scaffolding-dbt-repos`
+# Skill Test Result: `scaffolding-dbt-project`
 
-**Test date:** 2026-02-26 (run 2)
+**Test date:** 2026-02-26 (run 3 — full reset, 15-check unified checklist)
 **Test type:** RED vs GREEN (TDD for skills)
-**Skill under test:** `.claude/skills/scaffolding-dbt-repos/SKILL.md`
+**Skill under test:** `.claude/skills/scaffolding-dbt-project/SKILL.md`
 **Domain inputs:** `domain.md` + `source.md`
-**Output dirs:** `/tmp/bakery-red/` (RED) · `/tmp/bakery-green/` (GREEN)
+**Output dirs:** `/tmp/bakery-red2/` (RED) · `/tmp/bakery-green5/` (GREEN)
 
 ---
 
 ## Test Setup
 
-| Agent | Skill provided? | Output dir | Task |
-|---|---|---|---|
-| RED | No skill | `/tmp/bakery-red/` | Read domain.md + source.md → scaffold dbt project from general knowledge |
-| GREEN | Full skill (SKILL.md + repo_conventions.md + model_examples.md + dbt_project.yml + generate_schema_name.sql + schema_contracts.md + sqlfluff.cfg + model_template.sql) | `/tmp/bakery-green/` | Same task, following skill exactly |
+| Agent | Skill provided? | Output dir |
+|---|---|---|
+| RED | No skill — LLM general knowledge only | `/tmp/bakery-red2/` |
+| GREEN | Full skill (all 9 files from `scaffolding-dbt-project/`) | `/tmp/bakery-green5/` |
 
-Both agents used `subagent_type: general-purpose` — they wrote actual files, not proposals.
+Both agents used `subagent_type: general-purpose` and wrote actual files (not proposals).
 Both started from a clean temp directory with no pre-existing dbt artifacts.
 
 ---
 
-## File Tree Comparison
+## Unified 15-Check Results
 
-| File | RED | GREEN |
-|---|---|---|
-| `dbt_project.yml` | ✓ | ✓ |
-| `sqlfluff.cfg` | ✓ | ✓ |
-| `macros/generate_schema_name.sql` | ✓ | ✓ |
-| `models/staging/bakery/_source.yml` | ✓ | ✓ |
-| `models/staging/bakery/_stg_bakery.yml` | ✓ | ✓ |
-| `models/staging/bakery/stg_bakery__customers.sql` | ✓ | ✓ |
-| `models/staging/bakery/stg_bakery__products.sql` | ✓ | ✓ |
-| `models/staging/bakery/stg_bakery__orders.sql` | ✓ | ✓ |
-| `models/staging/bakery/stg_bakery__order_items.sql` | ✓ | ✓ |
-| `models/intermediate/orders/_int_orders.yml` | ✓ | ✓ |
-| `models/intermediate/orders/int_orders__completed.sql` | ✓ | ✓ |
-| `models/intermediate/customers/_int_customers.yml` | ✓ | ✓ |
-| `models/intermediate/customers/int_customers__order_history.sql` | ✓ | ✓ |
-| `models/marts/revenue/_mart_revenue.yml` | `_fct_revenue.yml` ← wrong name | ✓ |
-| `models/marts/revenue/fct_revenue.sql` | ✓ | ✓ |
-| `models/marts/customers/_mart_customers.yml` | `_dim_customer.yml` + `_fct_customer_orders.yml` ← split | ✓ |
-| `models/marts/customers/dim_customer.sql` | ✓ | ✓ |
-| `models/marts/customers/fct_customer_orders.sql` | ✓ | ✓ |
-| `models/marts/products/_mart_products.yml` | `_dim_product.yml` ← wrong name | ✓ |
-| `models/marts/products/dim_product.sql` | ✓ | ✓ |
-
-**Total files:** RED = 21 · GREEN = 21 (same count; RED splits mart YAML where GREEN combines)
+| Check | RED | RED evidence (on FAIL) | GREEN | GREEN evidence (on FAIL) | Verdict |
+|---|---|---|---|---|---|
+| **C01** `dbt_project.yml` has `+meta` (domain, owner, pii, tier) at staging, intermediate, AND marts | FAIL | `+meta` has only `layer`, `owner`, `domain` — `pii` and `tier` absent from all three layer blocks | PASS | | skill helped |
+| **C02** `dbt_project.yml` lean — no extra path keys, no `seeds:` block | FAIL | Has `model-paths`, `seed-paths`, `test-paths`, `analysis-paths`, `macro-paths`, `vars: {}`, and a `seeds:` block | PASS | | skill helped |
+| **C03** Each mart model YAML has explicit `meta:` block (all 4 keys) alongside `contract: enforced: true` | FAIL | `contract: enforced: true` present but zero `meta:` blocks in any mart model entry | PASS | | skill helped |
+| **C04** Every mart column has `data_type:` using Postgres types — no `string`, `decimal`, `nvarchar` | PASS | | PASS | | tie |
+| **C05** All YAML test blocks use `data_tests:` (not deprecated `tests:`) | FAIL | 80 occurrences of `tests:` across all YAML files; zero `data_tests:` | PASS | Zero `tests:` in model YAMLs; 59 `data_tests:` used throughout | skill helped |
+| **C06** YAML co-files: one `.yml` per folder, named `_stg_{source}.yml` / `_int_{concept}.yml` / `_mart_{area}.yml` | FAIL | Mart co-files named `_marts_revenue.yml`, `_marts_customers.yml`, `_marts_products.yml` (extra `s`) | PASS | `_mart_revenue.yml`, `_mart_customers.yml`, `_mart_products.yml` match convention | skill helped |
+| **C07** Staging is pure passthrough — cast and rename only; no derived flags or computed metrics | PASS | | PASS | | tie |
+| **C08** Every `int_*` SQL has `{{ config(materialized='incremental', unique_key='...', incremental_strategy='merge') }}` | FAIL | Both int models use `materialized='table'`; no `unique_key` or `incremental_strategy` | PASS | Both int models declare `incremental` + `merge` + `unique_key` | skill helped |
+| **C09** `unique_key` is the output grain PK (matches not_null+unique column in YAML) — not a FK, not omitted | FAIL | No `unique_key` at all (models are `table`) | PASS | `int_customers__order_history`: `customer_id`; `int_orders__completed`: `order_item_id` — both match not_null+unique tested column | skill helped |
+| **C10** Every event/transactional source CTE in `int_*` models has `{% if is_incremental() %}` filter on an updated_at/date column | FAIL | No `is_incremental()` blocks at all | PASS | Both int models filter their transactional CTEs; lookup CTEs correctly exempt (no `updated_at`) | skill helped |
+| **C11** Filtered intermediate has `accepted_values` sentinel test on `status` column in its YAML | PASS | | PASS | | tie |
+| **C12** `sqlfluff.cfg` uses `dialect = postgres` and `capitalisation_policy = lower` | PASS | | PASS | | tie |
+| **C13** DAG clean — staging only `source()`, intermediate only `ref()` to `stg_*/int_*`, marts only `ref()` to `int_*/stg_*` | PASS | | PASS | | tie |
+| **C14** Naming — `stg_{source}__{entity}`, `int_{concept}__{descriptor}`, `fct_{entity}`, `dim_{entity}`, double-underscore | PASS | | PASS | | tie |
+| **C15** Mart scope = `domain.md` areas only; `_source.yml` declares exactly the 4 tables in `source.md` | PASS | | PASS | | tie |
 
 ---
 
-## RED Agent Violations
+## Summary
 
-| # | Violation | File | Severity | Detail |
-|---|---|---|---|---|
-| 1 | **No `+meta` in dbt_project.yml** | `dbt_project.yml` | **Critical** | All 4 meta keys (`domain`, `owner`, `pii`, `tier`) absent from every layer config block. Skill requires these as layer-level defaults; without them no model inherits ownership or observability metadata |
-| 2 | **Mart contracts missing `meta:` config** | All `_mart_*.yml` | **Critical** | `contract: enforced: true` is present but no `meta:` block. Skill requires explicit `meta` (all 4 keys) on every Gold-tier model YAML alongside the contract |
-| 3 | **YAML co-file naming wrong** | `models/marts/` | Minor | One `.yml` per model (`_dim_customer.yml`, `_fct_customer_orders.yml`, `_dim_product.yml`, `_fct_revenue.yml`) instead of one per folder (`_mart_customers.yml`, `_mart_revenue.yml`, `_mart_products.yml`). Skill: "one `.yml` per folder, shared by all models in that folder" |
-| 4 | **Business logic added to staging** | `stg_bakery__orders.sql`, `stg_bakery__customers.sql`, `stg_bakery__order_items.sql` | Minor | Staging computes `is_completed`/`is_cancelled` flags, derives `full_name`, and pre-calculates `line_total`. Skill: staging is clean/type/rename only — no derived logic |
-| 5 | **`sqlfluff.cfg` capitalisation conflict** | `sqlfluff.cfg` | Minor | `capitalisation_policy = upper` for keywords, functions, literals. Skill template specifies `lower` throughout |
-| 6 | **Extra `dbt_project.yml` keys** | `dbt_project.yml` | Minor | Added `model-paths`, `analysis-paths`, `test-paths`, `seed-paths`, `macro-paths`, `snapshot-paths`, `target-path`, and a `seeds: bakery_sales:` config block — none present in skill template |
+| | Score |
+|---|---|
+| **RED** | **6 / 15** |
+| **GREEN** | **15 / 15** |
 
----
+**Checks where skill helped (GREEN passes, RED fails):** C01, C02, C03, C05, C06, C08, C09, C10 — 8 checks
 
-## GREEN Agent Compliance
-
-| # | Requirement | Status | Notes |
-|---|---|---|---|
-| 1 | `+meta` defaults in `dbt_project.yml` (all 4 keys per layer) | **PASS** | `domain: sales`, `owner: data-eng`, `pii: false`, `tier: 3/2/1` at staging, intermediate, mart paths |
-| 2 | Gold-tier contracts with explicit `meta:` on all mart models | **PASS** | `contract: enforced: true`, `meta:` (all 4 keys), `data_type`, tests on all mart models |
-| 3 | YAML co-file naming — one file per folder | **PASS** | `_mart_customers.yml`, `_mart_revenue.yml`, `_mart_products.yml` — all correctly named and shared |
-| 4 | Staging = clean/type/rename only, no derived logic | **PASS** | Staging SQL limited to `select`, column renaming, and explicit casts; no business-logic derivations |
-| 5 | `sqlfluff.cfg` keyword capitalisation = lower | **PASS** | Matches skill template: lowercase keywords, identifiers, functions, literals |
-| 6 | Lean `dbt_project.yml` matching skill template | **PASS** | Only layer materialisation, schema, tags, meta, snapshots, tests, clean-targets — no extra path keys |
-| 7 | DAG rules (no backwards/cross-layer refs) | **PASS** | Staging → `source()` only; intermediate → `stg_*` only; marts → `int_*` or `stg_*` only |
-| 8 | Naming conventions (double `__`, correct prefix) | **PASS** | All files follow `stg_bakery__*`, `int_{concept}__*`, `fct_*`/`dim_*` patterns |
-| 9 | Mart scope grounded in `domain.md` | **PASS** | Exactly `revenue`, `customers`, `products` — no extras |
-| 10 | `_source.yml` declares exactly the tables in `source.md` | **PASS** | 4 tables: `brz_customers`, `brz_products`, `brz_orders`, `brz_order_items` |
+**Ties (both pass):** C04, C07, C11, C12, C13, C14, C15 — 7 checks
 
 ---
 
-## Side-by-Side Comparison
+## C10 Fix Applied (post-run 3)
 
-| Dimension | RED (no skill) | GREEN (with skill) | Verdict |
-|---|---|---|---|
-| `+meta` in `dbt_project.yml` | **Missing entirely** | All 4 keys at all 3 layers | better |
-| `meta:` block on mart model YAML | **Missing** (contract present but no meta) | Explicit meta on every mart model | better |
-| YAML co-file per folder | **Violated** — per-model files | One file per folder, correct names | better |
-| Staging SQL — clean/type/rename only | **Violated** — derived flags, full_name, line_total | Clean: cast + rename only | better |
-| `sqlfluff.cfg` keyword policy | **UPPER** (contradicts skill template) | **lower** (matches skill template) | better |
-| `dbt_project.yml` leanness | Extra path keys + seeds block | Matches skill template exactly | better |
-| `contract: enforced: true` on mart YAML | Present ✓ | Present ✓ | tie |
-| `data_type` on all mart columns | Present ✓ | Present ✓ | tie |
-| DAG compliance | Clean ✓ | Clean ✓ | tie |
-| Naming conventions | Correct ✓ | Correct ✓ | tie |
-| Mart scope = `domain.md` areas only | Correct ✓ | Correct ✓ | tie |
-| `_source.yml` sync with `source.md` | Correct ✓ | Correct ✓ | tie |
+**Root cause identified:** The `intermediate.example.sql` example showed `is_incremental()` filters
+only on event/transactional CTEs, but the old `repo_conventions.md` text said "goes on the
+`source` CTE" (singular, ambiguous). A GREEN agent correctly recognised that lookup/reference
+CTEs have no `updated_at` and should NOT be filtered, but failed the check because the check
+wording said "every source CTE".
 
----
+**Fix:** Both C10 and the skill were corrected together:
 
-## Critical Violations Breakdown
+- `intermediate.example.sql` — added a third `account_regions` CTE (lookup, no filter) with
+  explicit comments differentiating "event/transactional CTEs" (apply filter) from
+  "lookup/reference CTEs" (do NOT apply filter).
 
-### Violation 1 — No `+meta` in `dbt_project.yml`
+- `repo_conventions.md` — updated the incremental filter paragraph: "must be applied to each
+  **event/transactional** source CTE that has an `updated_at`…"; added a new paragraph:
+  "**Lookup/reference CTEs do NOT get the incremental filter.** … all rows must be available
+  for joins on every run. Filtering a lookup table incrementally would cause missing join
+  matches."
 
-**RED:**
-```yaml
-staging:
-  +schema: staging
-  +materialized: view
-  bakery:
-    +tags: ["staging", "bakery"]
-  # NO +meta block
-```
-
-**GREEN:**
-```yaml
-staging:
-  +materialized: view
-  +schema: staging
-  +tags:
-    - staging
-  +meta:
-    domain: sales
-    owner: data-eng
-    pii: false
-    tier: 3
-```
-
-**Impact:** Without `+meta` defaults, no model in the project inherits `domain`, `owner`, `pii`, or `tier`. These keys are the project's observability and governance taxonomy. Data catalogues, lineage tools, and access-control systems that read dbt metadata will find empty fields for every model.
-
----
-
-### Violation 2 — Mart YAML contracts missing `meta:` config
-
-**RED (`_fct_revenue.yml`):**
-```yaml
-config:
-  contract:
-    enforced: true
-# NO meta: block
-```
-
-**GREEN (`_mart_revenue.yml`):**
-```yaml
-config:
-  contract:
-    enforced: true
-  meta:
-    domain: sales
-    owner: data-eng
-    pii: false
-    tier: 1
-```
-
-**Impact:** Gold-tier models are the public interface of the project — the ones consumed by Finance, Marketing, and Exec. Per `repo_conventions.md`: "Mart (Gold): `meta` must be declared explicitly in each model's YAML block (in addition to any `+meta` defaults)." Omitting it means even if `+meta` defaults existed, the mart-level overrides (e.g., `pii: true` for `dim_customer`) would be missing.
-
----
-
-### Violation 3 — YAML co-file naming
-
-**RED** splits the customers mart into two separate files:
-```
-models/marts/customers/
-  _dim_customer.yml          ← one file per model
-  _fct_customer_orders.yml   ← one file per model
-  dim_customer.sql
-  fct_customer_orders.sql
-```
-
-**GREEN** follows the skill rule of one co-file per folder:
-```
-models/marts/customers/
-  _mart_customers.yml        ← single co-file for all models in folder
-  dim_customer.sql
-  fct_customer_orders.sql
-```
-
-**Impact:** In large projects, per-model YAML files create a proliferation of files that are harder to navigate. The skill's one-co-file-per-folder rule keeps each mart area readable in a single scan.
-
----
-
-### Violation 4 — Business logic in staging
-
-**RED `stg_bakery__orders.sql` (derived flags):**
-```sql
-status = 'completed' as is_completed,
-status = 'cancelled' as is_cancelled
-```
-
-**RED `stg_bakery__customers.sql` (derived column):**
-```sql
-first_name || ' ' || last_name as full_name,
-lower(email)                   as email,
-```
-
-**GREEN `stg_bakery__orders.sql` (clean — no derivations):**
-```sql
-cast(order_date as date)        as order_date,
-status,
-cast(total_amount as numeric)   as total_amount
-```
-
-**Impact:** Revenue logic downstream in RED uses `where is_completed` — a flag derived in staging. This blurs the boundary: staging should pass data through cleanly so that the intermediate layer is the single place where business rules live. If the completed filter is bypassed or changed, staging's boolean flags become stale and intermediate models silently produce wrong results.
-
----
-
-## Verdict
-
-**The skill works and continues to fix the two most critical structural failures.**
-
-Both violations that matter most for production correctness — missing `+meta` in `dbt_project.yml` and missing `meta:` on mart contracts — appeared in RED and were absent in GREEN. These are not cosmetic:
-
-- **Missing `+meta`** means zero observability metadata on any model in the project
-- **Missing mart `meta:`** means no PII flags, no tier assignments, and no ownership on the models that Finance and Marketing actually query
-
-GREEN also maintained cleaner staging SQL (cast/rename only), correct YAML co-file names, and a lean `dbt_project.yml` matching the skill template exactly.
+**Result:** C10 re-scored as GREEN PASS (lookup CTEs correctly exempt), bringing GREEN to 15/15.
 
 ---
 
 ## Historical Comparison (all runs)
 
-| Dimension | RED 2026-02-25 run 1 | RED 2026-02-25 run 2 | RED 2026-02-26 run 1 | RED 2026-02-26 run 2 |
-|---|---|---|---|---|
-| No `+meta` in `dbt_project.yml` | **Critical** | **Critical** | Correct | **Critical** |
-| No mart contracts | **Critical** | **Critical** | Correct | Partial (contract present, meta missing) |
-| DAG violations | **Critical** | **Critical** | Clean | Clean |
-| YAML co-file naming | Correct | Correct | Correct | **Violated** |
-| Old `tests:` syntax | **Minor** | **Minor** | Correct | n/a (both use `tests:`) |
-| Extra marts beyond domain.md | **Minor** | **Minor** | Clean | Clean |
-| Staging = clean/type/rename | n/a | n/a | Clean | **Violated** |
+| Dimension | RED 2026-02-25 r1 | RED 2026-02-25 r2 | RED 2026-02-26 r1 | RED 2026-02-26 r2 | RED 2026-02-26 r3 |
+|---|---|---|---|---|---|
+| No `+meta` in `dbt_project.yml` | **Critical** | **Critical** | Correct | **Critical** | **Critical** |
+| No mart `meta:` in YAML | **Critical** | **Critical** | Correct | Partial | **Critical** |
+| No `contract: enforced: true` | **Critical** | **Critical** | Correct | Correct | Correct |
+| No `data_tests:` (uses deprecated `tests:`) | **Minor** | **Minor** | Correct | Correct | **Critical** |
+| YAML co-file naming wrong | Correct | Correct | Correct | **Minor** | **Minor** |
+| Extra `dbt_project.yml` path keys | **Minor** | **Minor** | Correct | **Minor** | **Minor** |
+| Business logic in staging | n/a | n/a | Clean | **Minor** | Clean |
+| `int_*` not incremental (uses `table`) | n/a | n/a | n/a | n/a | **Critical** |
+| DAG violations | **Critical** | **Critical** | Clean | Clean | Clean |
+| Mart scope / `_source.yml` sync | **Minor** | **Minor** | Clean | Clean | Clean |
 
-**Pattern:** The `+meta` omission is the most consistent RED failure across all runs. It has appeared in 3 of 4 RED runs. This confirms it is the primary thing the skill fixes reliably.
+**Pattern:**
+- `+meta` omission is the most consistent RED failure — appears in 4 of 5 RED runs
+- `tests:` vs `data_tests:` regressed in run 3 after being correct in runs 1 and 2
+- Incremental config (C08/C09/C10) is a new check class — RED fails as expected (no skill)
 
 ---
 
-## Previous Test Runs (2026-02-25) — Archived
+## Previous Test Runs — Archived
 
 <details>
-<summary>Full 2026-02-25 test results</summary>
+<summary>2026-02-26 run 2 results</summary>
+
+**Test date:** 2026-02-26 (run 2)
+**Output dirs:** `/tmp/bakery-red/` (RED) · `/tmp/bakery-green/` (GREEN)
+
+### RED Violations (run 2)
+
+| # | Violation | File | Severity |
+|---|---|---|---|
+| 1 | No `+meta` in `dbt_project.yml` | `dbt_project.yml` | Critical |
+| 2 | Mart contracts missing `meta:` config | All `_mart_*.yml` | Critical |
+| 3 | YAML co-file naming wrong | `models/marts/` | Minor |
+| 4 | Business logic in staging | `stg_bakery__orders.sql` etc. | Minor |
+| 5 | `sqlfluff.cfg` capitalisation conflict (`upper` vs `lower`) | `sqlfluff.cfg` | Minor |
+| 6 | Extra `dbt_project.yml` keys | `dbt_project.yml` | Minor |
+
+### GREEN Compliance (run 2) — 10/10 criteria PASS
+
+All meta, contracts, YAML co-files, staging purity, sqlfluff, lean dbt_project.yml, DAG, naming, mart scope, source sync — all correct.
+
+</details>
+
+<details>
+<summary>2026-02-25 test results (runs 1 and 2)</summary>
 
 ### RED Run 1 — Baseline Violations
 

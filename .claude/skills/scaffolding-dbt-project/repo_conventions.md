@@ -131,13 +131,23 @@ Each model must declare its own `unique_key` matching the model's primary or sur
 ) }}
 ```
 
-The incremental filter (processing only new/changed rows) goes on the `source` CTE:
+The incremental filter (processing only new/changed rows) must be applied to each
+**event/transactional** source CTE that has an `updated_at` or suitable date column
+(e.g. orders, events, transactions):
 
 ```jinja
 {% if is_incremental() %}
     where updated_at > (select max(updated_at) from {{ this }})
 {% endif %}
 ```
+
+**Lookup/reference CTEs do NOT get the incremental filter.** If a source CTE is a static
+reference table (e.g. a product catalogue, region map, or any table without `updated_at`),
+omit the filter entirely — all rows must be available for joins on every run. Filtering a
+lookup table incrementally would cause missing join matches on incremental runs.
+
+See `intermediate.example.sql` for a complete example showing both filtered event CTEs and
+an unfiltered lookup CTE in the same model.
 
 ### Choosing `unique_key` — rules and anti-patterns
 
