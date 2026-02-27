@@ -48,3 +48,11 @@ This repo runs on **Windows with WSL bash**. Follow these rules for all file ope
 This repo has a custom skill `scaffolding-dbt-project` (`.claude/skills/scaffolding-dbt-project/`) covering conventions for scaffolding, model placement, naming, DAG compliance, and config templates.
 
 Invoke it via the `Skill` tool when scaffolding new domains, placing new models, or checking naming/DAG compliance.
+
+## Skill Evaluation
+
+Skill evaluations live in `.claude/skills-evaluation/{skill-name}/`. Each folder contains:
+- `evaluation-steps.md` — how to run the RED vs GREEN comparison (rubric + test task)
+- `evaluation-results.md` — historical run results
+
+To evaluate whether a skill is working, invoke `superpowers:dispatching-parallel-agents` and follow the instructions in the relevant `evaluation-steps.md`.

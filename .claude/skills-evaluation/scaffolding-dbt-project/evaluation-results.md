@@ -18,13 +18,66 @@ All runs across all dates. Scores are numeric only where a fixed rubric was used
 | 2026-02-25 | r2 | informal (~10) | ~4/10 | ~10/10 | +6 | Loophole verification: mart scope + `_source.yml` sync confirmed closed |
 | 2026-02-26 | r1 | 10 checks | ~10/10 | 10/10 | ~0 | Anomalous RED pass — outlier; RED got most checks right without skill |
 | 2026-02-26 | r2 | 10 checks | 4/10 | 10/10 | +6 | Added co-file naming and incremental checks; RED regressed on +meta |
-| 2026-02-26 | r3 | 15 checks | **6/15** | **15/15** | **+9** | Full reset with unified rubric; incremental class (C08–C10) added |
+| 2026-02-26 | r3 | 15 checks | 6/15 | 15/15 | +9 | Full reset with unified rubric; incremental class (C08–C10) added |
+| 2026-02-27 | r1 | **29 checks** | **21/29** | **29/29** | **+8** | Expanded rubric (A01–G02); RED still fails +meta, co-file naming, incremental config, mart meta, E03 |
 
-**Trend:** Rubric grew from ~10 informal checks to 15 formal checks as new failure patterns were discovered. GREEN has been consistently near-perfect across all runs. RED failures are stable in 4 of 5 runs — the r1 outlier on 2026-02-26 is unexplained.
+**Trend:** Rubric grew from ~10 informal checks to 15 to 29 checks as new failure patterns were discovered. GREEN has been consistently perfect across all runs. RED's weak spots — `+meta` completeness, YAML co-file naming, incremental config in `dbt_project.yml`, mart model-level `meta:` — are stable across every run.
 
 ---
 
-## Run 3 — 2026-02-26 · 15-check unified rubric (current)
+## Run 1 — 2026-02-27 · 29-check rubric (current)
+
+**Output dirs:** `/tmp/finance-red/` (RED) · `/tmp/finance-green/` (GREEN)
+**Domain:** `finance` · **Source:** `accounting` (brz_invoices, brz_payments)
+
+| ID  | Group           | Check                                          | RED | GREEN |
+|-----|-----------------|------------------------------------------------|-----|-------|
+| A01 | Naming          | stg_* filename pattern                         | ✅  | ✅    |
+| A02 | Naming          | int_* filename pattern                         | ✅  | ✅    |
+| A03 | Naming          | fct_*/dim_* filename pattern                   | ✅  | ✅    |
+| A04 | Naming          | YAML co-files: one per folder, `_{layer}_{area}.yml` | ❌  | ✅    |
+| A05 | Naming          | `_source.yml` in `models/staging/accounting/`  | ✅  | ✅    |
+| B01 | Structure       | stg_* SQL under `models/staging/`              | ✅  | ✅    |
+| B02 | Structure       | int_* SQL under `models/intermediate/`         | ✅  | ✅    |
+| B03 | Structure       | fct_*/dim_* SQL under `models/marts/`          | ✅  | ✅    |
+| B04 | Structure       | `macros/generate_schema_name.sql` exists       | ✅  | ✅    |
+| C01 | dbt_project.yml | Staging `+meta`: domain, owner, pii, tier (literals) | ❌  | ✅    |
+| C02 | dbt_project.yml | Intermediate `+meta`: all 4 keys (literals)    | ❌  | ✅    |
+| C03 | dbt_project.yml | Mart `+meta`: all 4 keys (literals)            | ❌  | ✅    |
+| C04 | dbt_project.yml | No `vars:` meta-defaults block                 | ✅  | ✅    |
+| C05 | dbt_project.yml | No extra path declarations                     | ❌  | ✅    |
+| C06 | dbt_project.yml | Intermediate `+materialized: incremental` + strategy | ❌  | ✅    |
+| C07 | dbt_project.yml | Staging view / Mart table                      | ✅  | ✅    |
+| D01 | DAG             | stg_* uses `source()` only                     | ✅  | ✅    |
+| D02 | DAG             | int_* refs only stg_* or int_*                 | ✅  | ✅    |
+| D03 | DAG             | mart refs only int_* or stg_*                  | ✅  | ✅    |
+| E01 | Int SQL         | `{{ config() }}` with unique_key + strategy    | ✅  | ✅    |
+| E02 | Int SQL         | unique_key matches model grain PK              | ✅  | ✅    |
+| E03 | Int SQL         | `is_incremental()` on all event CTEs; no filter on lookups | ❌  | ✅    |
+| F01 | YAML            | Every model has entry + description            | ✅  | ✅    |
+| F02 | YAML            | PK has `not_null` + `unique` tests             | ✅  | ✅    |
+| F03 | YAML            | Mart `contract: enforced: true`                | ✅  | ✅    |
+| F04 | YAML            | Mart `config: meta:` with all 4 keys           | ❌  | ✅    |
+| F05 | YAML            | Mart columns have `data_type`                  | ✅  | ✅    |
+| G01 | Staging purity  | No computed columns in staging                 | ✅  | ✅    |
+| G02 | Staging purity  | No WHERE clause in staging                     | ✅  | ✅    |
+
+**RED: 21/29 · GREEN: 29/29 · Skill delta: +8**
+
+Checks fixed by skill: A04, C01, C02, C03, C05, C06, E03, F04
+Checks still failing with skill: none
+
+**RED failure notes:**
+- A04: Created one YAML file per model (`_stg_accounting__invoices.yml`, `_stg_accounting__payments.yml`, etc.) instead of one co-file per folder
+- C01–C03: `+meta` used `layer:` and `owner:` only — `domain`, `pii`, `tier` absent from all three layers
+- C05: Added all default path declarations (`model-paths`, `seed-paths`, `test-paths`, `analysis-paths`, `macro-paths`, `snapshot-paths`, `docs-paths`)
+- C06: Intermediate set to `+materialized: table` in dbt_project.yml (incremental config only in model SQL config block)
+- E03: `invoices` CTE had `is_incremental()` filter; `payments` CTE (also transactional) did not
+- F04: Mart YAML had `contract: enforced: true` but no `meta:` block
+
+---
+
+## Run 3 — 2026-02-26 · 15-check unified rubric
 
 **Output dirs:** `/tmp/bakery-red2/` (RED) · `/tmp/bakery-green5/` (GREEN)
 
