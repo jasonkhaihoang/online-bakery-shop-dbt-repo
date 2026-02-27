@@ -1,4 +1,4 @@
-# repo_conventions.md
+﻿# repo_conventions.md
 
 ## Folder Tree
 
@@ -109,7 +109,7 @@ Staging models are a strict passthrough. The following are forbidden:
 | Forbidden pattern | Example | Correct layer |
 | --- | --- | --- |
 | Boolean flags derived from enums | `status = 'completed' as is_completed` | Intermediate (filter directly: `where status = 'completed'`) |
-| String concatenations | `first_name \|\| ' ' \|\| last_name as full_name` | Intermediate or Mart |
+| String concatenations | `first_name \|\| ' \|\| last_name as full_name` | Intermediate or Mart |
 | Computed metrics | `quantity * unit_price as line_total` | Intermediate |
 | Business-rule filtering | `where status = 'completed'` | Intermediate |
 
@@ -131,13 +131,42 @@ Each model must declare its own `unique_key` matching the model's primary or sur
 ) }}
 ```
 
-The incremental filter (processing only new/changed rows) goes on the `source` CTE:
+The incremental filter (processing only new/changed rows) must be applied to each
+**event/transactional** source CTE that has an `updated_at` or suitable date column
+(e.g. orders, events, transactions):
 
 ```jinja
 {% if is_incremental() %}
     where updated_at > (select max(updated_at) from {{ this }})
 {% endif %}
 ```
+
+**Lookup/reference CTEs do NOT get the incremental filter.** If a source CTE is a static
+reference table (e.g. a product catalogue, region map, or any table without `updated_at`),
+omit the filter entirely — all rows must be available for joins on every run. Filtering a
+lookup table incrementally would cause missing join matches on incremental runs.
+
+See `intermediate.example.sql` for a complete example showing both filtered event CTEs and
+an unfiltered lookup CTE in the same model.
+
+### Choosing `unique_key` — rules and anti-patterns
+
+Set `unique_key` to the column that uniquely identifies one row in the **output** of this model.
+It must be the same column that has `not_null` + `unique` tests in the model's YAML.
+
+| Model grain | Correct `unique_key` |
+|---|---|
+| One row per customer | `customer_id` |
+| One row per order | `order_id` |
+| One row per order line item | `order_item_id` |
+| No natural PK (multi-source aggregation) | surrogate: `{{ dbt_utils.generate_surrogate_key(['col_a', 'col_b']) }}` |
+
+**Anti-patterns:**
+
+| Anti-pattern | Why it is wrong |
+|---|---|
+| Using a foreign key (e.g. `order_id` in a line-items model) | FKs are not unique per row — merge silently keeps only one row per FK value and discards the rest |
+| Omitting `unique_key` entirely | Without it, incremental defaults to append-only and creates duplicates on every run. `unique_key` cannot be set at the project level — it must be declared per-model in a `{{ config() }}` block |
 
 ## Meta Keys
 
@@ -178,3 +207,105 @@ add an `accepted_values` test on that column:
 
 This sentinel turns a silent failure (filter accidentally removed → inflated revenue) into a
 `dbt test` failure caught before the model reaches consumers.
+### Gold-tier contract example
+
+Minimal but complete `_mart_{area}.yml` showing the required structure for contracted models.
+
+> **Data type note:** `data_type` values must match the target adapter.
+>
+> | Column kind | Postgres | Spark / Fabric |
+> |---|---|---|
+> | PK / FK from source | `integer` | `int` |
+> | Free-text / name / email | `text` | `string` |
+> | Count aggregate | `bigint` | `bigint` |
+> | Sum of numeric | `numeric` | `decimal` |
+> | Date | `date` | `date` |
+> | Boolean | `boolean` | `boolean` |
+>
+> The example below uses **Postgres types**. Swap to Spark/Fabric equivalents when targeting those adapters.
+
+```yaml
+# _mart_finance.yml  (Postgres types — swap to Spark/Fabric equivalents if needed)
+version: 2
+
+models:
+  # ── Fact model (no PII, aggregated) ───────────────────────────────────────
+  - name: fct_revenue
+    description: "One row per completed order. Aggregated revenue metrics for exec reporting."
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: finance
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: order_id
+        description: "Primary key — unique per completed order."
+        data_type: integer
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_id
+        description: "FK to dim_customer."
+        data_type: integer
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+      - name: order_item_count
+        description: "Number of line items in the order."
+        data_type: bigint
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: "Sum of (quantity × unit_price) for all line items."
+        data_type: numeric
+        data_tests:
+          - not_null
+      - name: order_date
+        description: "Date the order was placed."
+        data_type: date
+        data_tests:
+          - not_null
+
+  # ── Dimension model (contains PII) ────────────────────────────────────────
+  - name: dim_customer
+    description: "One row per customer. Contains PII — restrict access appropriately."
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: finance
+        owner: data-eng
+        pii: true          # model-level PII flag
+        tier: 1
+    columns:
+      - name: customer_id
+        description: "Primary key."
+        data_type: integer
+        data_tests:
+          - not_null
+          - unique
+      - name: full_name
+        description: "Customer full name (PII)."
+        data_type: text
+        meta:
+          pii: true         # column-level PII flag on sensitive fields
+        data_tests:
+          - not_null
+      - name: email
+        description: "Customer email address (PII)."
+        data_type: text
+        meta:
+          pii: true
+        data_tests:
+          - not_null
+      - name: is_active
+        description: "True if the customer has placed at least one non-cancelled order."
+        data_type: boolean
+        data_tests:
+          - not_null
+```

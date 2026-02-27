@@ -1,5 +1,5 @@
 ---
-name: scaffolding-dbt-repos
+name: scaffolding-dbt-project
 description: Use when scaffolding a new dbt data domain repo, placing a new model in the correct layer, checking naming or DAG compliance, or referencing project config templates and linting rules.
 ---
 
@@ -63,6 +63,7 @@ These files are project-specific and maintained by the repo owner — not create
 - `generate_schema_name.template.sql` — schema isolation macro + env mapping table
 
 **Examples & templates:**
-- `model_examples.md` — staging, intermediate, and mart model examples
-- `schema_contracts.md` — Gold-tier YAML with enforced contracts
+- `staging.example.sql` — staging model (cast, rename, source() passthrough only)
+- `intermediate.example.sql` — intermediate model (incremental merge, unique_key, is_incremental filter)
+- `mart.example.sql` — mart model (consumer-ready aggregation, ref() from intermediate)
 - `model.template.sql` — starter skeleton for new models
