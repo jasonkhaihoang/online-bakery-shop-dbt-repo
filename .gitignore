@@ -12,6 +12,9 @@ dbt_packages/
 # dbt profiles (may contain credentials)
 profiles.yml
 
+# Skills
+.claude/skills/*.zip
+
 # OS / editor
 .DS_Store
 *.swp
