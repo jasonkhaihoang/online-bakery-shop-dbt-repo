@@ -2,6 +2,14 @@
 -- Customer profile enriched with completed order history.
 -- Grain: one row per customer.
 
+{{
+    config(
+        materialized         = 'incremental',
+        unique_key           = 'customer_id',
+        incremental_strategy = 'merge'
+    )
+}}
+
 with
 
 customers as (

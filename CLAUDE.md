@@ -37,14 +37,23 @@ All dbt commands use the local `.venv`:
 
 ## File Operations
 
-This repo runs on **Windows with WSL bash**. Follow these rules for all file operations:
+This repo runs on **Windows with PowerShell/cmd** (not WSL). Follow these rules for all file operations:
 
-- **Always use absolute Windows paths** with the `Write` and `Edit` tools — e.g. `c:\Users\ADMIN\github\online-bakery-shop-dbt-repo\path\to\file.md`. Relative paths are resolved by WSL as `/mnt/c/...` and cause ENOENT errors.
+- **Always use absolute Windows paths** with the `Write` and `Edit` tools — e.g. `C:\Users\ADMIN\github\online-bakery-shop-dbt-repo\path\to\file.md`.
 - **Never use `touch`, `cp`, or shell redirects** to create or modify files — use `Write` and `Edit` tools only.
-- **To create a new directory**, use `mkdir` via Bash first (`mkdir -p /mnt/c/Users/ADMIN/github/online-bakery-shop-dbt-repo/path/to/dir`), then write files into it with `Write` using the absolute Windows path. The `Write` tool cannot create directories.
+- **Never use `/mnt/c/...` paths** — this is not a WSL environment.
+- **To create a new directory**, use `mkdir` via Bash with a Windows-style path, e.g. `mkdir -p "C:/Users/ADMIN/github/online-bakery-shop-dbt-repo/path/to/dir"`, then write files into it with `Write` using the absolute Windows path. The `Write` tool cannot create directories.
 
 ## Skills
 
 This repo has a custom skill `scaffolding-dbt-project` (`.claude/skills/scaffolding-dbt-project/`) covering conventions for scaffolding, model placement, naming, DAG compliance, and config templates.
 
 Invoke it via the `Skill` tool when scaffolding new domains, placing new models, or checking naming/DAG compliance.
+
+## Skill Evaluation
+
+Skill evaluations live in `.claude/skills-evaluation/{skill-name}/`. Each folder contains:
+- `evaluation-steps.md` — how to run the RED vs GREEN comparison (rubric + test task)
+- `evaluation-results.md` — historical run results
+
+To evaluate whether a skill is working, invoke `superpowers:dispatching-parallel-agents` and follow the instructions in the relevant `evaluation-steps.md`.

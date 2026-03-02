@@ -1,11 +1,16 @@
 ---
 name: scaffolding-dbt-project
-description: Use when scaffolding a new dbt data domain repo, placing a new model in the correct layer, checking naming or DAG compliance, or referencing project config templates and linting rules.
+description: Use when scaffolding a new dbt data domain repo, placing a new model in the
+  correct layer, checking naming or DAG compliance, or referencing project config templates
+  and linting rules.
 ---
+
+# Scaffolding dbt Projects
 
 ## Overview
 
-One dbt project per data domain, each in its own GitHub repo and Fabric workspace (1:1 mapping).
+One dbt project per data domain, each in its own repo. Three layers:
+Staging (bronze entry point) → Intermediate/Silver (business logic) → Mart/Gold (consumer-ready, contracted).
 
 | Layer | Alias | Folder | Purpose |
 | --- | --- | --- | --- |
@@ -16,6 +21,17 @@ One dbt project per data domain, each in its own GitHub repo and Fabric workspac
 > **Note:** Bronze tables are managed outside dbt. Staging is the dbt entry point — it references bronze via `source()`, not `ref()`.
 
 > **Rule of thumb:** "Would a second consumer need this same logic?" **Yes** → Intermediate. **No** → Mart.
+
+## When to Use
+
+Use this skill when:
+- Scaffolding a new domain or source
+- Placing a new model in the correct layer
+- Checking or fixing naming violations
+- Verifying DAG compliance
+- Writing or reviewing `dbt_project.yml`, YAML co-files, or `_source.yml`
+
+**When NOT to use:** ad-hoc queries, seed management, or dbt package development.
 
 ## Naming Conventions
 
@@ -47,23 +63,36 @@ Before scaffolding, read these files from the repo root if they exist:
 | `domain.md` | Project domain, business intent, key entities | Bootstrapping a new project, choosing mart consumer areas, or making naming decisions |
 | `source.md` | Available bronze sources and their fields, derived from seeds | Creating or updating `_source.yml`, adding staging models |
 
-These files are project-specific and maintained by the repo owner — not created by this skill. If they don't exist, ask the user before proceeding.
+These files are project-specific and maintained by the repo owner — not created by this skill. If they do not exist, ask the user before proceeding.
 
 **Mart scope is set by `domain.md`.**  The `Mart consumer areas` table in `domain.md` lists the exact folders to create under `models/marts/`. Do not create mart folders or models beyond what is listed there.
 
 **Bronze: seeds vs `_source.yml`.**  Seeds (CSV files in `seeds/`) load the bronze data into the database. `_source.yml` (inside `models/staging/{source}/`) declares those same tables so dbt's `source()` function can reference them. They must stay in sync — `_source.yml` should declare exactly the tables listed in `source.md`, no more, no fewer.
 
+## Common Mistakes
+
+| Mistake | Fix |
+| --- | --- |
+| Business logic in staging (flags, filters, computed columns) | Move to intermediate |
+| `ref()` in a staging model | Replace with `source()` |
+| `vars:` block for `+meta` defaults in `dbt_project.yml` | Use literal values in `+meta:` |
+| One YAML file per model instead of one co-file per folder | Use `_stg_accounting.yml`, `_int_finance.yml`, `_mart_finance.yml` |
+| `tests:` instead of `data_tests:` in YAML | Use `data_tests:` |
+| `unique_key` pointing to a FK | Use the model's own grain PK |
+| Intermediate set to `table` in `dbt_project.yml` | Set `+materialized: incremental` + `+incremental_strategy: merge` |
+| Mart YAML has `contract: enforced: true` but no `meta:` block | Add `config: meta:` with all 4 keys |
+
 ## Reference Files
 
-**Conventions** → `repo_conventions.md` — full folder tree, business logic placement, meta keys, and YAML co-file requirements.
+**Conventions** → `references/repo_conventions.md` — full folder tree, business logic placement, meta keys, and YAML co-file requirements.
 
 **Config templates:**
-- `dbt_project.template.yml` — project config template with layer materializations and meta defaults
-- `sqlfluff.template.cfg` — linting rules (postgres dialect; switch to sparksql for Fabric targets)
-- `generate_schema_name.template.sql` — schema isolation macro + env mapping table
+- `references/dbt_project.template.yml` — project config template with layer materializations and meta defaults
+- `references/sqlfluff.template.cfg` — linting rules (postgres dialect; switch to sparksql for Fabric targets)
+- `references/generate_schema_name.template.sql` — schema isolation macro + env mapping table
 
 **Examples & templates:**
-- `staging.example.sql` — staging model (cast, rename, source() passthrough only)
-- `intermediate.example.sql` — intermediate model (incremental merge, unique_key, is_incremental filter)
-- `mart.example.sql` — mart model (consumer-ready aggregation, ref() from intermediate)
-- `model.template.sql` — starter skeleton for new models
+- `references/staging.example.sql` — staging model (cast, rename, source() passthrough only)
+- `references/intermediate.example.sql` — intermediate model (incremental merge, unique_key, is_incremental filter)
+- `references/mart.example.sql` — mart model (consumer-ready aggregation, ref() from intermediate)
+- `references/model.template.sql` — starter skeleton for new models

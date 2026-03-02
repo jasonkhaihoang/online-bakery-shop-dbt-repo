@@ -27,8 +27,11 @@ models:
         data_tests:
           - not_null
       - name: status
+        description: Always 'completed' in this model by construction.
         data_tests:
           - not_null
+          - accepted_values:
+              values: ['completed']
       - name: product_name
       - name: category
       - name: quantity
