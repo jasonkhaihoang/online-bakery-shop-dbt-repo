@@ -1,0 +1,182 @@
+version: 2
+
+unit_tests:
+
+  # ── int_orders__revenue_by_category ──────────────────────────────────────────
+
+  - name: ut__int_revenue_by_category__excludes_cancelled_orders
+    description: >
+      Business rule: orders with status 'cancelled' must not appear in the
+      intermediate model. Only 'completed' and 'shipped' orders contribute revenue.
+    model: int_orders__revenue_by_category
+    given:
+      - input: ref('stg_bakery__orders')
+        rows:
+          - {order_id: 101, customer_id: 1, order_date: '2024-02-01', status: 'completed',  total_amount: 10.00}
+          - {order_id: 102, customer_id: 2, order_date: '2024-02-02', status: 'cancelled',  total_amount: 5.00}
+          - {order_id: 103, customer_id: 3, order_date: '2024-02-03', status: 'processing', total_amount: 8.00}
+          - {order_id: 104, customer_id: 4, order_date: '2024-02-04', status: 'shipped',    total_amount: 12.00}
+      - input: ref('stg_bakery__order_items')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 0}
+          - {order_item_id: 2, order_id: 102, product_id: 2, quantity: 1, unit_price: 5.00,  refund_amount: 0}
+          - {order_item_id: 3, order_id: 103, product_id: 3, quantity: 1, unit_price: 8.00,  refund_amount: 0}
+          - {order_item_id: 4, order_id: 104, product_id: 4, quantity: 1, unit_price: 12.00, refund_amount: 0}
+      - input: ref('stg_bakery__products')
+        rows:
+          - {product_id: 1, product_name: 'Sourdough', category: 'bread'}
+          - {product_id: 2, product_name: 'Croissant', category: 'pastry'}
+          - {product_id: 3, product_name: 'Latte',     category: 'drink'}
+          - {product_id: 4, product_name: 'Birthday Cake', category: 'cake'}
+    expect:
+      rows:
+        - {order_item_id: 1, order_id: 101, status: 'completed', product_category: 'bread',  net_line_revenue: 10.00}
+        - {order_item_id: 4, order_id: 104, status: 'shipped',   product_category: 'cake',   net_line_revenue: 12.00}
+
+  - name: ut__int_revenue_by_category__excludes_null_category_products
+    description: >
+      Business rule: rows where product_category is null must be excluded
+      before aggregation. Products with null category should never appear in output.
+    model: int_orders__revenue_by_category
+    given:
+      - input: ref('stg_bakery__orders')
+        rows:
+          - {order_id: 101, customer_id: 1, order_date: '2024-02-01', status: 'completed', total_amount: 10.00}
+          - {order_id: 102, customer_id: 2, order_date: '2024-02-01', status: 'completed', total_amount: 8.00}
+      - input: ref('stg_bakery__order_items')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 0}
+          - {order_item_id: 2, order_id: 102, product_id: 99, quantity: 1, unit_price: 8.00, refund_amount: 0}
+      - input: ref('stg_bakery__products')
+        rows:
+          - {product_id: 1, product_name: 'Sourdough', category: 'bread'}
+          - {product_id: 99, product_name: 'Unknown',  category: null}
+    expect:
+      rows:
+        - {order_item_id: 1, order_id: 101, product_category: 'bread', net_line_revenue: 10.00}
+
+  - name: ut__int_revenue_by_category__deduplicates_order_items
+    description: >
+      Business rule: no duplicate order_item_id within a single order.
+      If the source emits the same order_item_id twice for the same order,
+      only the first occurrence (lowest row_number) should be retained.
+    model: int_orders__revenue_by_category
+    given:
+      - input: ref('stg_bakery__orders')
+        rows:
+          - {order_id: 101, customer_id: 1, order_date: '2024-02-01', status: 'completed', total_amount: 10.00}
+      - input: ref('stg_bakery__order_items')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 0}
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 0}
+      - input: ref('stg_bakery__products')
+        rows:
+          - {product_id: 1, product_name: 'Sourdough', category: 'bread'}
+    expect:
+      rows:
+        - {order_item_id: 1, order_id: 101, product_category: 'bread', net_line_revenue: 10.00}
+
+  - name: ut__int_revenue_by_category__deducts_partial_refund
+    description: >
+      Business rule: partial refunds are deducted from line revenue.
+      A line with unit_price=10 and refund_amount=3 should have net_line_revenue=7.
+      The order is NOT excluded — only the refunded amount is deducted.
+    model: int_orders__revenue_by_category
+    given:
+      - input: ref('stg_bakery__orders')
+        rows:
+          - {order_id: 101, customer_id: 1, order_date: '2024-02-01', status: 'completed', total_amount: 17.00}
+      - input: ref('stg_bakery__order_items')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 3.00}
+          - {order_item_id: 2, order_id: 101, product_id: 2, quantity: 1, unit_price: 7.00,  refund_amount: 0.00}
+      - input: ref('stg_bakery__products')
+        rows:
+          - {product_id: 1, product_name: 'Sourdough',  category: 'bread'}
+          - {product_id: 2, product_name: 'Croissant',  category: 'pastry'}
+    expect:
+      rows:
+        - {order_item_id: 1, product_category: 'bread',  net_line_revenue: 7.00}
+        - {order_item_id: 2, product_category: 'pastry', net_line_revenue: 7.00}
+
+  - name: ut__int_revenue_by_category__excludes_fully_refunded_lines
+    description: >
+      Business rule: net_line_revenue must be > 0.
+      A line where refund_amount equals the full line amount (quantity * unit_price)
+      results in net_line_revenue = 0 and must be excluded from the output.
+    model: int_orders__revenue_by_category
+    given:
+      - input: ref('stg_bakery__orders')
+        rows:
+          - {order_id: 101, customer_id: 1, order_date: '2024-02-01', status: 'completed', total_amount: 10.00}
+      - input: ref('stg_bakery__order_items')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_id: 1, quantity: 1, unit_price: 10.00, refund_amount: 10.00}
+          - {order_item_id: 2, order_id: 101, product_id: 2, quantity: 2, unit_price: 5.00,  refund_amount: 0.00}
+      - input: ref('stg_bakery__products')
+        rows:
+          - {product_id: 1, product_name: 'Sourdough', category: 'bread'}
+          - {product_id: 2, product_name: 'Croissant', category: 'pastry'}
+    expect:
+      rows:
+        # order_item_id=1 (net=0) excluded; order_item_id=2 (net=10) retained
+        - {order_item_id: 2, product_category: 'pastry', net_line_revenue: 10.00}
+
+  # ── fct_revenue_by_category_monthly ──────────────────────────────────────────
+
+  - name: ut__fct_monthly_revenue__aggregates_correctly_single_category
+    description: >
+      Verify total_revenue, order_count, and avg_order_value aggregate correctly
+      for a single category across two orders in one month.
+    model: fct_revenue_by_category_monthly
+    given:
+      - input: ref('int_orders__revenue_by_category')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_category: 'bread', order_date: '2024-02-01', net_line_revenue: 10.00}
+          - {order_item_id: 2, order_id: 102, product_category: 'bread', order_date: '2024-02-15', net_line_revenue: 20.00}
+    expect:
+      rows:
+        - {revenue_month: '2024-02-01', product_category: 'bread', total_revenue: 30.00, order_count: 2, avg_order_value: 15.00}
+
+  - name: ut__fct_monthly_revenue__splits_multi_category_orders
+    description: >
+      Multi-category orders: one order spanning two categories should produce
+      two separate rows in the mart (one per category per month).
+    model: fct_revenue_by_category_monthly
+    given:
+      - input: ref('int_orders__revenue_by_category')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_category: 'bread',  order_date: '2024-02-01', net_line_revenue: 10.00}
+          - {order_item_id: 2, order_id: 101, product_category: 'pastry', order_date: '2024-02-01', net_line_revenue: 5.00}
+    expect:
+      rows:
+        - {revenue_month: '2024-02-01', product_category: 'bread',  total_revenue: 10.00, order_count: 1}
+        - {revenue_month: '2024-02-01', product_category: 'pastry', total_revenue: 5.00,  order_count: 1}
+
+  - name: ut__fct_monthly_revenue__mom_growth_null_for_new_category
+    description: >
+      Edge case: a category appearing for the first time in the current month
+      (no prior month row) must have revenue_mom_growth = null, not 0.
+    model: fct_revenue_by_category_monthly
+    given:
+      - input: ref('int_orders__revenue_by_category')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_category: 'bread', order_date: '2024-02-01', net_line_revenue: 10.00}
+    expect:
+      rows:
+        - {revenue_month: '2024-02-01', product_category: 'bread', total_revenue: 10.00, revenue_mom_growth: null}
+
+  - name: ut__fct_monthly_revenue__mom_growth_calculated_correctly
+    description: >
+      Verify revenue_mom_growth formula: ((current - prior) / prior) * 100.
+      Feb: 100, Mar: 150 => growth = ((150-100)/100)*100 = 50.00
+    model: fct_revenue_by_category_monthly
+    given:
+      - input: ref('int_orders__revenue_by_category')
+        rows:
+          - {order_item_id: 1, order_id: 101, product_category: 'bread', order_date: '2024-02-01', net_line_revenue: 100.00}
+          - {order_item_id: 2, order_id: 102, product_category: 'bread', order_date: '2024-03-01', net_line_revenue: 150.00}
+    expect:
+      rows:
+        - {revenue_month: '2024-02-01', product_category: 'bread', total_revenue: 100.00, revenue_mom_growth: null}
+        - {revenue_month: '2024-03-01', product_category: 'bread', total_revenue: 150.00, revenue_mom_growth: 50.00}

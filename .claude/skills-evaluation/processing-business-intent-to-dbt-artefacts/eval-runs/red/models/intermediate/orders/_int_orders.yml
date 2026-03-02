@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: int_orders__revenue_by_category
+    description: >
+      Line-item level revenue facts for qualifying orders.
+      Business rules: status must be in ('completed', 'shipped');
+      net_line_total must be > 0; product_category must not be null.
+      Partial refunds are deducted at the line-item level, not applied
+      as whole-order exclusions.
+      Grain: one row per qualifying order line item.
+    columns:
+      - name: order_item_id
+        description: Primary key. Unique within the model by incremental merge key.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Foreign key to the parent order.
+        data_tests:
+          - not_null
+      - name: customer_id
+        description: Foreign key to the customer.
+        data_tests:
+          - not_null
+      - name: product_id
+        description: Foreign key to the product.
+        data_tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed.
+        data_tests:
+          - not_null
+      - name: status
+        description: Order status. Only 'completed' or 'shipped' values appear here.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'shipped']
+      - name: product_name
+        description: Product name at query time. May change retroactively.
+      - name: product_category
+        description: Product category. Never null in this model by construction.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: quantity
+        description: Units ordered for this line item.
+        data_tests:
+          - not_null
+      - name: unit_price
+        description: Price per unit at time of order.
+        data_tests:
+          - not_null
+      - name: refunded_amount
+        description: Partial or full refund amount for this line item. 0 when no refund.
+        data_tests:
+          - not_null
+      - name: gross_line_total
+        description: Revenue before refund deduction (quantity * unit_price).
+        data_tests:
+          - not_null
+      - name: net_line_total
+        description: >
+          Revenue after refund deduction (gross_line_total - refunded_amount).
+          Always > 0 in this model by construction.
+        data_tests:
+          - not_null

@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: fct_revenue_by_category_monthly
+    description: >
+      Monthly revenue report by product category for the sales team.
+      Metrics include total_revenue, order_count, avg_order_value, and
+      revenue_mom_growth. Only completed/shipped orders with positive
+      net revenue are included. Partial refunds are deducted at line-item
+      level. New categories have null revenue_mom_growth in their first month.
+      Grain: one row per product_category per month.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: product_category
+        description: >
+          Product category name. One of: bread, pastry, cake, drink.
+          Retroactive name changes are reflected at next full-refresh.
+        data_type: varchar
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: revenue_month
+        description: First day of the calendar month for this aggregation row.
+        data_type: date
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: >
+          Sum of net line item amounts (after partial refund deductions)
+          for all qualifying orders in this category-month.
+          Always > 0 by construction.
+        data_type: numeric
+        data_tests:
+          - not_null
+      - name: order_count
+        description: >
+          Count of distinct orders contributing revenue to this
+          product category in the month.
+        data_type: bigint
+        data_tests:
+          - not_null
+      - name: avg_order_value
+        description: total_revenue divided by order_count for this category-month.
+        data_type: numeric
+        data_tests:
+          - not_null
+      - name: revenue_mom_growth
+        description: >
+          Month-over-month revenue growth percentage for this category.
+          Null when the category has no prior-month data (new category debut).
+          Calculated as ((current - prior) / prior) * 100, rounded to 2 d.p.
+        data_type: numeric
+
+    data_tests:
+      - unique:
+          column_name: "product_category || '|' || revenue_month::text"
+          config:
+            alias: fct_revenue_by_category_monthly_unique_key

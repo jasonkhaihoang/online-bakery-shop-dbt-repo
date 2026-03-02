@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: stg_bakery__order_items
+    description: >
+      Cleaned and typed order line items with partial-refund support.
+      Gross and net line totals are pre-computed here so all downstream
+      models consume consistent revenue figures.
+      Grain: one row per order line item.
+    columns:
+      - name: order_item_id
+        description: Primary key.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Foreign key to stg_bakery__orders.
+        data_tests:
+          - not_null
+      - name: product_id
+        description: Foreign key to stg_bakery__products.
+        data_tests:
+          - not_null
+      - name: quantity
+        description: Number of units ordered for this line item.
+        data_tests:
+          - not_null
+      - name: unit_price
+        description: Price per unit at time of order.
+        data_tests:
+          - not_null
+      - name: refunded_amount
+        description: >
+          Partial or full refund amount applied to this line item.
+          Defaults to 0 when no refund exists in the source.
+        data_tests:
+          - not_null
+      - name: gross_line_total
+        description: quantity * unit_price before any refund deduction.
+        data_tests:
+          - not_null
+      - name: net_line_total
+        description: >
+          Revenue contribution after refund deduction
+          (gross_line_total - refunded_amount).
+        data_tests:
+          - not_null

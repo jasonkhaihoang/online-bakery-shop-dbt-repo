@@ -1,0 +1,68 @@
+version: 2
+
+models:
+  - name: int_orders__revenue_by_category
+    description: >
+      Line-item grain revenue attributed to product category for eligible orders.
+      Enforces all revenue business rules: status filter, category null exclusion,
+      deduplication of order line items, and net revenue > 0 (partial refund deduction).
+      Grain: one row per deduplicated, eligible order line item.
+    columns:
+      - name: order_item_id
+        description: Primary key — deduplicated line item identifier.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Foreign key to the parent order.
+        data_tests:
+          - not_null
+      - name: customer_id
+        description: Foreign key to the customer who placed the order.
+        data_tests:
+          - not_null
+      - name: product_id
+        description: Foreign key to the product on this line item.
+        data_tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed.
+        data_tests:
+          - not_null
+      - name: status
+        description: >
+          Order status. By construction, always in ('completed', 'shipped').
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'shipped']
+      - name: product_name
+        description: Name of the product at time of order.
+        data_tests:
+          - not_null
+      - name: product_category
+        description: >
+          Product category (bread, pastry, cake, drink). Never null by construction —
+          rows with null category are excluded before this model.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: quantity
+        description: Number of units in this line item.
+        data_tests:
+          - not_null
+      - name: unit_price
+        description: Price per unit at time of order.
+        data_tests:
+          - not_null
+      - name: refund_amount
+        description: Amount refunded against this line item (0 if no refund).
+        data_tests:
+          - not_null
+      - name: net_line_revenue
+        description: >
+          Net revenue for this line item: (quantity * unit_price) - refund_amount.
+          Always > 0 by construction — fully refunded lines are excluded.
+        data_tests:
+          - not_null
