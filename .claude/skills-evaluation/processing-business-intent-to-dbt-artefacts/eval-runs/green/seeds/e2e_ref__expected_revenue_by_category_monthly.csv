@@ -1,0 +1,10 @@
+revenue_month,product_category,expected_total_revenue,expected_order_count
+2024-02-01,bread,19.50,2
+2024-02-01,cake,83.00,2
+2024-02-01,drink,12.00,2
+2024-03-01,cake,115.00,3
+2024-03-01,drink,12.00,2
+2024-03-01,pastry,6.50,1
+2024-04-01,bread,11.50,1
+2024-04-01,cake,83.00,2
+2024-04-01,drink,6.00,1

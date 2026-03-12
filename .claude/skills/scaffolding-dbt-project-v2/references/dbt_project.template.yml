@@ -1,0 +1,62 @@
+name: domain_name  # replace with actual domain name
+version: '1.0.0'
+
+config-version: 2
+
+profile: domain_name  # matches profiles.yml target
+
+# NOTE: dbt does NOT render Jinja ({{ var(...) }}) inside dbt_project.yml config
+# blocks such as +meta. Use literal values here — e.g. replace 'your-domain' and
+# 'data-eng' with the actual domain and owner strings for this project.
+
+models:
+  domain_name:
+
+    # ── Staging ───────────────────────────────────────────
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags:
+        - staging
+      +meta:
+        domain: your-domain   # replace: e.g. sales, finance, marketing
+        owner: data-eng        # replace: responsible team or person
+        sla: "07:00"           # replace: time by which this layer must be ready
+        contains_pii: false    # replace: true if any column in this layer contains PII
+
+    # ── Intermediate (Silver) ─────────────────────────────
+    intermediate:
+      +materialized: incremental
+      +incremental_strategy: merge
+      +schema: intermediate
+      +tags:
+        - intermediate
+        - silver
+      +meta:
+        domain: your-domain
+        owner: data-eng
+        sla: "07:00"
+        contains_pii: false
+
+    # ── Mart (Gold) ───────────────────────────────────────
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags:
+        - mart
+        - gold
+      +meta:
+        domain: your-domain
+        owner: data-eng
+        sla: "07:00"
+        contains_pii: false
+
+snapshots:
+  +schema: snapshots
+
+tests:
+  +severity: error
+
+clean-targets:
+  - target
+  - dbt_packages

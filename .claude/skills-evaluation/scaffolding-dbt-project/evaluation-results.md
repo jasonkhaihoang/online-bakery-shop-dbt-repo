@@ -1,95 +1,147 @@
-# Skill Test Result: `scaffolding-dbt-project`
+# Skill Test Result: `scaffolding-dbt-project-v2`
 
 **Test type:** RED vs GREEN (TDD for skills)
-**Skill under test:** `.claude/skills/scaffolding-dbt-project/SKILL.md`
-**Domain inputs:** `domain.md` + `source.md`
+**Skill under test:** `specs/phase1/scaffolding-dbt-project-v2/SKILL.md`
+**Domain inputs:** Interview answers (Bronze ownership, Fabric connection, Metadata) — no `domain.md` or `source.md` required
 
-Both agents used `subagent_type: general-purpose` and wrote actual files (not proposals), starting from a clean temp directory with no pre-existing dbt artifacts.
+Both agents use `subagent_type: general-purpose` and produce a **plan** (list of artefacts + intended content) — no actual files are written to disk.
 
 ---
 
 ## Run History Progress
 
-All runs across all dates. Scores are numeric only where a fixed rubric was used; earlier runs used an informal violation-listing approach.
-
 | Date | Run | Rubric | RED | GREEN | Skill delta | Key outcome |
 |------|-----|--------|-----|-------|-------------|-------------|
-| 2026-02-25 | r1 | informal (~10) | ~4/10 | ~10/10 | +6 | Baseline: +meta absent, DAG violation (mart→mart), old `tests:` syntax |
-| 2026-02-25 | r2 | informal (~10) | ~4/10 | ~10/10 | +6 | Loophole verification: mart scope + `_source.yml` sync confirmed closed |
-| 2026-02-26 | r1 | 10 checks | ~10/10 | 10/10 | ~0 | Anomalous RED pass — outlier; RED got most checks right without skill |
-| 2026-02-26 | r2 | 10 checks | 4/10 | 10/10 | +6 | Added co-file naming and incremental checks; RED regressed on +meta |
-| 2026-02-26 | r3 | 15 checks | **6/15** | **15/15** | **+9** | Full reset with unified rubric; incremental class (C08–C10) added |
-
-**Trend:** Rubric grew from ~10 informal checks to 15 formal checks as new failure patterns were discovered. GREEN has been consistently near-perfect across all runs. RED failures are stable in 4 of 5 runs — the r1 outlier on 2026-02-26 is unexplained.
+| 2026-03-02 | r1 | 30 checks | **16/30** | **25/30** | **+9** | Skill fixes interview protocol, auth config, project_standards.md, source.md; gaps in meta key names and sqlfluff dialect |
+| 2026-03-02 | r2 | 30 checks | **19/30** | **30/30** | **+11** | Post-fix run (garments domain). All 3 gaps from r1 closed. GREEN perfect. RED improved on B01–B03 but still fails interview, dialect, project_standards.md |
 
 ---
 
-## Run 3 — 2026-02-26 · 15-check unified rubric (current)
+## Run 1 — 2026-03-02 · 30-check rubric
 
-**Output dirs:** `/tmp/bakery-red2/` (RED) · `/tmp/bakery-green5/` (GREEN)
+**Domain:** `finance` · **Source:** `finance_bronze` (`brz_invoices`, `brz_payments`)
 
-| Check | RED | RED evidence (on FAIL) | GREEN | Verdict |
-|---|---|---|---|---|
-| **C01** `dbt_project.yml` has `+meta` (domain, owner, pii, tier) at staging, intermediate, AND marts | FAIL | `+meta` has only `layer`, `owner`, `domain` — `pii` and `tier` absent from all three layer blocks | PASS | skill helped |
-| **C02** `dbt_project.yml` lean — no extra path keys, no `seeds:` block | FAIL | Has `model-paths`, `seed-paths`, `test-paths`, `analysis-paths`, `macro-paths`, `vars: {}`, and a `seeds:` block | PASS | skill helped |
-| **C03** Each mart model YAML has explicit `meta:` block (all 4 keys) alongside `contract: enforced: true` | FAIL | `contract: enforced: true` present but zero `meta:` blocks in any mart model entry | PASS | skill helped |
-| **C04** Every mart column has `data_type:` using Postgres types — no `string`, `decimal`, `nvarchar` | PASS | | PASS | tie |
-| **C05** All YAML test blocks use `data_tests:` (not deprecated `tests:`) | FAIL | 80 occurrences of `tests:` across all YAML files; zero `data_tests:` | PASS | skill helped |
-| **C06** YAML co-files: one `.yml` per folder, named `_stg_{source}.yml` / `_int_{concept}.yml` / `_mart_{area}.yml` | FAIL | Mart co-files named `_marts_revenue.yml`, `_marts_customers.yml`, `_marts_products.yml` (extra `s`) | PASS | skill helped |
-| **C07** Staging is pure passthrough — cast and rename only; no derived flags or computed metrics | PASS | | PASS | tie |
-| **C08** Every `int_*` SQL has `{{ config(materialized='incremental', unique_key='...', incremental_strategy='merge') }}` | FAIL | Both int models use `materialized='table'`; no `unique_key` or `incremental_strategy` | PASS | skill helped |
-| **C09** `unique_key` is the output grain PK (matches not_null+unique column in YAML) — not a FK, not omitted | FAIL | No `unique_key` at all (models are `table`) | PASS | skill helped |
-| **C10** Every event/transactional source CTE in `int_*` models has `{% if is_incremental() %}` filter on an updated_at/date column | FAIL | No `is_incremental()` blocks at all | PASS | skill helped |
-| **C11** Filtered intermediate has `accepted_values` sentinel test on `status` column in its YAML | PASS | | PASS | tie |
-| **C12** `sqlfluff.cfg` uses `dialect = postgres` and `capitalisation_policy = lower` | PASS | | PASS | tie |
-| **C13** DAG clean — staging only `source()`, intermediate only `ref()` to `stg_*/int_*`, marts only `ref()` to `int_*/stg_*` | PASS | | PASS | tie |
-| **C14** Naming — `stg_{source}__{entity}`, `int_{concept}__{descriptor}`, `fct_{entity}`, `dim_{entity}`, double-underscore | PASS | | PASS | tie |
-| **C15** Mart scope = `domain.md` areas only; `_source.yml` declares exactly the 4 tables in `source.md` | PASS | | PASS | tie |
+| ID  | Group           | Check                                               | RED | GREEN |
+|-----|-----------------|-----------------------------------------------------|-----|-------|
+| A01 | Interview       | One topic at a time                                 | ❌  | ✅    |
+| A02 | Interview       | Summary before generation                           | ❌  | ✅    |
+| A03 | Interview       | No model SQL produced                               | ❌  | ✅    |
+| B01 | dbt_project.yml | Staging +meta: owner, domain, sla, contains_pii     | ❌  | ❌    |
+| B02 | dbt_project.yml | Intermediate +meta: all 4 keys                      | ❌  | ❌    |
+| B03 | dbt_project.yml | Mart +meta: all 4 keys                              | ❌  | ❌    |
+| B04 | dbt_project.yml | No vars: meta-defaults block                        | ✅  | ✅    |
+| B05 | dbt_project.yml | No extra path declarations                          | ✅  | ✅    |
+| B06 | dbt_project.yml | Intermediate incremental + merge strategy           | ✅  | ✅    |
+| B07 | dbt_project.yml | Staging view / Mart table                           | ✅  | ✅    |
+| C01 | profiles.yml    | Adapter is fabric                                   | ✅  | ✅    |
+| C02 | profiles.yml    | dev uses Entra ID interactive auth                  | ❌  | ✅    |
+| C03 | profiles.yml    | prod uses service principal (env vars)              | ❌  | ✅    |
+| C04 | profiles.yml    | Bronze endpoint URL present                         | ✅  | ✅    |
+| C05 | profiles.yml    | Silver and Gold endpoint URLs present               | ✅  | ❌    |
+| D01 | _source.yml     | File at correct path                                | ✅  | ✅    |
+| D02 | _source.yml     | Declares correct bronze tables only                 | ✅  | ✅    |
+| D03 | _source.yml     | database/schema matches bronze lakehouse            | ✅  | ✅    |
+| E01 | .sqlfluff       | dialect = sparksql                                  | ❌  | ❌    |
+| E02 | .sqlfluff       | capitalisation_policy = lower                       | ✅  | ✅    |
+| E03 | .sqlfluff       | Trailing comma + explicit aliasing                  | ✅  | ✅    |
+| F01 | macro           | generate_schema_name.sql exists                     | ✅  | ✅    |
+| F02 | macro           | prod returns schema as-is                           | ✅  | ✅    |
+| F03 | macro           | non-prod prefixes with target name                  | ✅  | ✅    |
+| G01 | project_stds    | project_standards.md exists                         | ❌  | ✅    |
+| G02 | project_stds    | Contains DAG rules                                  | ❌  | ✅    |
+| G03 | project_stds    | Contains staging boundary rules                     | ❌  | ✅    |
+| G04 | project_stds    | Contains bronze ownership statement                 | ❌  | ✅    |
+| H01 | packages.yml    | dbt_utils only (no extra packages)                  | ✅  | ✅    |
+| H02 | source.md       | Bronze table inventory produced                     | ❌  | ✅    |
 
-**RED: 6/15 · GREEN: 15/15 · Skill delta: +9**
+**RED: 16/30 · GREEN: 25/30 · Skill delta: +9**
 
-Checks where skill helped: C01, C02, C03, C05, C06, C08, C09, C10
-Ties (both pass): C04, C07, C11, C12, C13, C14, C15
-
----
-
-## Run 2 — 2026-02-26 · 10 checks
-
-**Output dirs:** `/tmp/bakery-red/` (RED) · `/tmp/bakery-green/` (GREEN)
-
-### RED — 4/10 (6 violations found)
-
-| # | Violation | File | Severity |
-|---|---|---|---|
-| 1 | No `+meta` in `dbt_project.yml` | `dbt_project.yml` | Critical |
-| 2 | Mart contracts missing `meta:` config | All `_mart_*.yml` | Critical |
-| 3 | YAML co-file naming wrong | `models/marts/` | Minor |
-| 4 | Business logic in staging | `stg_bakery__orders.sql` etc. | Minor |
-| 5 | `sqlfluff.cfg` capitalisation conflict (`upper` vs `lower`) | `sqlfluff.cfg` | Minor |
-| 6 | Extra `dbt_project.yml` keys | `dbt_project.yml` | Minor |
-
-### GREEN — 10/10
-
-All meta, contracts, YAML co-files, staging purity, sqlfluff, lean `dbt_project.yml`, DAG, naming, mart scope, source sync — all correct.
+Checks fixed by skill: A01, A02, A03, C02, C03, G01, G02, G03, G04, H02
+Checks still failing with skill: B01, B02, B03, C05, E01
+Check regression (RED ✅ → GREEN ❌): C05
 
 ---
 
-## Run 1 — 2026-02-26 · 10 checks (outlier)
+## Run 2 — 2026-03-02 · 30-check rubric (post-fix)
 
-No dedicated breakdown. Per the historical RED behavior table, RED passed nearly every check without the skill — the only run where this occurred across all 5 runs. No explanation was recorded. GREEN also passed 10/10.
+**Domain:** `garments` · **Source:** `garment_bronze` (`brz_sales_orders`, `brz_products`, `brz_customers`)
+**Fixes applied before this run:** `dbt_project.template.yml` (meta keys), `sqlfluff.template.cfg` (dialect default), `profiles.template.yml` (new), `SKILL.md` (Fabric Connection section)
 
-Skill delta: ~0 (not informative — treat as outlier).
+| ID  | Group           | Check                                               | RED | GREEN |
+|-----|-----------------|-----------------------------------------------------|-----|-------|
+| A01 | Interview       | One topic at a time                                 | ❌  | ✅    |
+| A02 | Interview       | Summary before generation                           | ❌  | ✅    |
+| A03 | Interview       | No model SQL produced                               | ❌  | ✅    |
+| B01 | dbt_project.yml | Staging +meta: owner, domain, sla, contains_pii     | ✅  | ✅    |
+| B02 | dbt_project.yml | Intermediate +meta: all 4 keys                      | ✅  | ✅    |
+| B03 | dbt_project.yml | Mart +meta: all 4 keys                              | ✅  | ✅    |
+| B04 | dbt_project.yml | No vars: meta-defaults block                        | ✅  | ✅    |
+| B05 | dbt_project.yml | No extra path declarations                          | ✅  | ✅    |
+| B06 | dbt_project.yml | Intermediate incremental + merge strategy           | ✅  | ✅    |
+| B07 | dbt_project.yml | Staging view / Mart table                           | ✅  | ✅    |
+| C01 | profiles.yml    | Adapter is fabric                                   | ✅  | ✅    |
+| C02 | profiles.yml    | dev uses Entra ID interactive auth                  | ❌  | ✅    |
+| C03 | profiles.yml    | prod uses service principal (env vars)              | ✅  | ✅    |
+| C04 | profiles.yml    | Bronze endpoint URL present                         | ❌  | ✅    |
+| C05 | profiles.yml    | Silver and Gold endpoint URLs present               | ✅  | ✅    |
+| D01 | _source.yml     | File at correct path                                | ✅  | ✅    |
+| D02 | _source.yml     | Declares correct bronze tables only                 | ✅  | ✅    |
+| D03 | _source.yml     | database/schema matches bronze lakehouse            | ✅  | ✅    |
+| E01 | .sqlfluff       | dialect = sparksql                                  | ❌  | ✅    |
+| E02 | .sqlfluff       | capitalisation_policy = lower                       | ✅  | ✅    |
+| E03 | .sqlfluff       | Trailing comma + explicit aliasing                  | ✅  | ✅    |
+| F01 | macro           | generate_schema_name.sql exists                     | ✅  | ✅    |
+| F02 | macro           | prod returns schema as-is                           | ✅  | ✅    |
+| F03 | macro           | non-prod prefixes with target name                  | ✅  | ✅    |
+| G01 | project_stds    | project_standards.md exists                         | ❌  | ✅    |
+| G02 | project_stds    | Contains DAG rules                                  | ❌  | ✅    |
+| G03 | project_stds    | Contains staging boundary rules                     | ❌  | ✅    |
+| G04 | project_stds    | Contains bronze ownership statement                 | ❌  | ✅    |
+| H01 | packages.yml    | dbt_utils only (no extra packages)                  | ✅  | ✅    |
+| H02 | source.md       | Bronze table inventory produced                     | ❌  | ✅    |
+
+**RED: 19/30 · GREEN: 30/30 · Skill delta: +11**
+
+Checks fixed by skill: A01, A02, A03, C02, C04, E01, G01, G02, G03, G04, H02
+Checks still failing with skill: none
+Regressions: none
+
+**RED failure notes (r2):**
+- **A01–A03:** Produced full model SQL (`stg_*` × 3, `int_*` × 2, `fct_*`/`dim_*` × 3) with no interview protocol. Phase 1 boundary not respected.
+- **C02:** Dev target used `authentication: ServicePrincipal` — not Entra ID interactive.
+- **C04:** Bronze endpoint not present in `profiles.yml` at all (appeared in `_source.yml` only).
+- **E01:** Used `dialect = tsql`, same reasoning as r1 — "Fabric Warehouse uses T-SQL". No skill to enforce `sparksql` default.
+- **G01–G04:** No `project_standards.md` produced.
+- **H02:** No `source.md` produced.
+
+**Note on RED B01–B03 improvement:** RED now includes `sla` and `contains_pii` alongside `pii` and `tier` (all 6 keys present). This is likely because the test task prompt explicitly lists these key names — not because RED has internalised the v2 standard. The 4 required keys pass the rubric check, but the presence of stale `pii`/`tier` keys reveals RED is still not following the v2 convention.
 
 ---
 
-## C10 Fix Applied (post-run 3)
+## Failure Notes (Run 1)
 
-**Root cause:** The `intermediate.example.sql` example showed `is_incremental()` filters only on event/transactional CTEs, but `repo_conventions.md` said "goes on the `source` CTE" (singular, ambiguous). A GREEN agent correctly recognised that lookup/reference CTEs have no `updated_at` and should NOT be filtered, but failed the check because the check wording said "every source CTE".
+### RED failures (14 checks)
 
-**Fix applied to both the check and the skill:**
+- **A01–A03:** No interview protocol. Went straight to generating artefacts including full model SQL (`stg_*`, `int_*`, `fct_*`, `dim_*`). Phase 1 boundary not respected.
+- **B01–B03:** `+meta` in `dbt_project.yml` used `pii: false` and `tier: 3` (v1 key names). Missing `sla` and `contains_pii` entirely.
+- **C02:** Used `authentication: environment` for dev target — generic env var auth, not Entra ID interactive.
+- **C03:** Used `authentication: environment` without explicitly declaring `client_id`, `client_secret`, `tenant_id` fields.
+- **E01:** Used `dialect = tsql`, reasoning that Fabric Warehouse uses T-SQL. Ignored the skill template's default of `sparksql`.
+- **G01–G04:** No `project_standards.md` produced at all.
+- **H02:** No `source.md` produced.
 
-- `intermediate.example.sql` — added a third `account_regions` CTE (lookup, no filter) with explicit comments differentiating "event/transactional CTEs" (apply filter) from "lookup/reference CTEs" (do NOT apply filter).
-- `repo_conventions.md` — updated the incremental filter paragraph and added: "**Lookup/reference CTEs do NOT get the incremental filter.** Filtering a lookup table incrementally would cause missing join matches."
+### GREEN failures (5 checks)
 
-**Result:** C10 re-scored as GREEN PASS, bringing GREEN to 15/15.
+- **B01–B03:** `+meta` in `dbt_project.yml` used `pii: false` and `tier: 3` (v1 key names from the template). Interview specified `sla: "07:00"` and `contains_pii: false`, but the agent followed the `dbt_project.template.yml` reference which still carries v1 key names. `contains_pii` appeared in the user-facing interview question but did not propagate into the template output.
+- **C05:** Gold endpoint was documented as a comment/note in `profiles.yml` but not configured as a usable target. RED correctly produced separate `prod_silver` and `prod_gold` targets.
+- **E01:** Same failure as RED — chose `tsql` dialect with identical reasoning ("Fabric Warehouse uses T-SQL, not Spark SQL"). The template defaults to `sparksql` but both agents overrode it.
 
+---
+
+## Skill Gaps Identified
+
+| Gap | Failing checks | Fix |
+|-----|---------------|-----|
+| `dbt_project.template.yml` still uses v1 meta keys (`pii`, `tier`) instead of v2 keys (`sla`, `contains_pii`) | B01, B02, B03 | Update template to use `sla` and `contains_pii`; remove `tier` |
+| No guidance on which sqlfluff dialect to default to for Fabric; agents consistently choose `tsql` | E01 | Tighten SKILL.md: state that `sparksql` is the default for Fabric Lakehouse SQL endpoints and is the template default; `tsql` is an explicit opt-in for Warehouse endpoints only |
+| Gold endpoint not configured as a write target in profiles | C05 | Add explicit Gold target to `profiles.yml` template or add guidance that Silver and Gold must each appear as a named target |

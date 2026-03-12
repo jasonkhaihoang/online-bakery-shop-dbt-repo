@@ -3,11 +3,22 @@
 -- Business rule: revenue is recognised only on completed orders.
 -- Grain: one row per order line item (completed orders only).
 
+{{
+    config(
+        materialized         = 'incremental',
+        unique_key           = 'order_item_id',
+        incremental_strategy = 'merge'
+    )
+}}
+
 with
 
 orders as (
     select * from {{ ref('stg_bakery__orders') }}
     where status = 'completed'
+    {% if is_incremental() %}
+        and order_date > (select max(order_date) from {{ this }})
+    {% endif %}
 ),
 
 order_items as (

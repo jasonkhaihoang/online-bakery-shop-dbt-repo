@@ -1,0 +1,59 @@
+# profiles.yml — Fabric ODBC connection template
+# Local only — git-ignored. Never commit this file.
+#
+# One profile per project (matches `profile:` in dbt_project.yml).
+# Three Fabric lakehouses, each with its own SQL Analytics Endpoint:
+#
+#   Bronze  — read-only source; declared in _source.yml only, not a dbt write target
+#   Silver  — dbt writes staging + intermediate models here
+#   Gold    — dbt writes mart models here (same role as Silver but for the Gold lakehouse)
+#
+# dev  → Entra ID interactive auth (az CLI login)
+# prod → Service principal via environment variables
+
+your_project_name:
+  target: dev
+  outputs:
+
+    # ── Dev target (Silver endpoint — staging + intermediate) ──────────────────
+    dev:
+      type: fabric
+      driver: 'ODBC Driver 18 for SQL Server'
+      server: your-silver-endpoint.datawarehouse.fabric.microsoft.com  # Silver endpoint
+      port: 1433
+      database: your_silver_database
+      schema: intermediate   # generate_schema_name prefixes this with target name in non-prod
+      threads: 4
+      authentication: CLI    # Entra ID interactive auth via az login
+
+    # ── Prod target — Silver endpoint (staging + intermediate) ─────────────────
+    prod_silver:
+      type: fabric
+      driver: 'ODBC Driver 18 for SQL Server'
+      server: your-silver-endpoint.datawarehouse.fabric.microsoft.com  # Silver endpoint
+      port: 1433
+      database: your_silver_database
+      schema: intermediate
+      threads: 8
+      authentication: ServicePrincipal
+      tenant_id: "{{ env_var('FABRIC_TENANT_ID') }}"
+      client_id: "{{ env_var('FABRIC_CLIENT_ID') }}"
+      client_secret: "{{ env_var('FABRIC_CLIENT_SECRET') }}"
+
+    # ── Prod target — Gold endpoint (mart models) ──────────────────────────────
+    prod_gold:
+      type: fabric
+      driver: 'ODBC Driver 18 for SQL Server'
+      server: your-gold-endpoint.datawarehouse.fabric.microsoft.com    # Gold (Mart) endpoint
+      port: 1433
+      database: your_gold_database
+      schema: marts
+      threads: 8
+      authentication: ServicePrincipal
+      tenant_id: "{{ env_var('FABRIC_TENANT_ID') }}"
+      client_id: "{{ env_var('FABRIC_CLIENT_ID') }}"
+      client_secret: "{{ env_var('FABRIC_CLIENT_SECRET') }}"
+
+# Bronze endpoint (finance-bronze.datawarehouse.fabric.microsoft.com) is read-only from dbt's
+# perspective. It is declared as the source database in models/staging/{source}/_source.yml
+# and is never a dbt write target.

@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: fct_revenue_by_category_monthly
+    description: >
+      Monthly revenue report by product category for the sales team.
+      Grain: one row per product_category per calendar month (year-month).
+      Metrics: total_revenue, order_count, avg_order_value, revenue_mom_growth.
+      Only completed and shipped orders are included. Fully refunded line items are excluded.
+      Partial refunds are deducted from line revenue before aggregation.
+      New categories with no prior-month data will have revenue_mom_growth = null.
+    config:
+      contract:
+        enforced: true
+      meta:
+        domain: sales
+        owner: data-eng
+        pii: false
+        tier: 1
+    columns:
+      - name: revenue_month
+        description: First day of the calendar month for this revenue row (year-month grain).
+        data_type: date
+        data_tests:
+          - not_null
+      - name: product_category
+        description: Product category name (bread, pastry, cake, drink).
+        data_type: text
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['bread', 'pastry', 'cake', 'drink']
+      - name: total_revenue
+        description: >
+          Sum of net line revenues (quantity * unit_price - refund_amount) for all eligible
+          line items in this category and month. Always > 0.
+        data_type: numeric
+        data_tests:
+          - not_null
+      - name: order_count
+        description: Count of distinct orders containing at least one line item in this category and month.
+        data_type: bigint
+        data_tests:
+          - not_null
+      - name: avg_order_value
+        description: >
+          Average revenue per order for this category and month: total_revenue / order_count.
+          Always > 0 since total_revenue > 0 and order_count >= 1.
+        data_type: numeric
+        data_tests:
+          - not_null
+      - name: revenue_mom_growth
+        description: >
+          Month-over-month revenue growth percentage for this category:
+          ((current_month_revenue - prior_month_revenue) / prior_month_revenue) * 100.
+          Null when the category appears for the first time (no prior month row).
+          Null when prior month revenue was 0 (avoids division by zero).
+        data_type: numeric
+
+  - name: int_orders__revenue_by_category
+    description: >
+      Referenced upstream intermediate model. See intermediate/orders/_int_orders.yml
+      for full documentation.
